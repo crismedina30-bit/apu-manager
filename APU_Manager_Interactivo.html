@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APU Manager — Presupuesto Interactivo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0f1117; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #1a1d27; }
+  ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useCallback, useRef, useEffect } = React;
+
+const RAW_DATA = {"r":[[1,"IMPERMEABILIZACIÓN CON MANTO ASFÁLTICO APP 4 mm EN CUBIERTA","m²",1,80075],[2,"CONCRETO ESTRUCTURAL 3.500 psi PARA VIGAS Y COLUMNAS","m³",1,968775],[3,"EXCAVACIÓN MECÁNICA PARA CIMIENTOS PROFUNDIDAD h=2.50 m","m³",1,48887.5],[4,"MURO EN LADRILLO PRENSADO H-10 PERFORACIÓN VERTICAL 0.12x0.24x0.06 m","m²",1,156332.5],[5,"CUBIERTA EN TEJA TERMOACÚSTICA ESPESOR 30 mm","m²",1,125918.75],[6,"SUMINISTRO E INSTALACIÓN DE TABLERO ELÉCTRICO TRIFÁSICO 120/208V, 24 CIRCUITOS","und",1,3571000],[7,"CERRAMIENTO EN MALLA ESLABONADA GALVANIZADA h=2.20 m CALIBRE 10","ml",1,156182.5],[8,"INSTALACIÓN DE INODORO AHORRADOR DUAL FLUSH 4.8/3 L","und",1,630237.5],[9,"PISO EN ADOQUÍN DE CONCRETO 6 cm TIPO UNIVERSO COLOR NATURAL","m²",1,120540],[10,"VENTANERÍA EN ALUMINIO SERIE 25 CON VIDRIO CLARO 6 mm","m²",1,416400],[11,"CIELO RASO EN DRYWALL RH 1/2\" CON PERFILERÍA METÁLICA","m²",1,66497.5],[12,"BORDILLO PREFABRICADO TIPO INVÍAS CLASE I h=15 cm","ml",1,70370],[13,"SISTEMA DE PUESTA A TIERRA RESIDENCIAL","und",1,745000],[14,"PUERTA METÁLICA EN LÁMINA COLD ROLLED CALIBRE 18","und",1,1028000],[15,"RED DE DATOS: PUNTO UTP CATEGORÍA 6 CERTIFICADO","und",1,410062.5],[16,"PINTURA VINÍLICA TIPO 1 EN MUROS INTERIORES","m²",1,20005],[17,"SUMINISTRO E INSTALACIÓN DE CALENTADOR DE AGUA A GAS 10 L/min","und",1,1372000],[18,"CANALETA DE DRENAJE SUPERFICIAL CON REJILLA FUNDIDA CLASE B125","ml",1,160925],[19,"RELLENO CON RECEBO B-200 COMPACTADO AL 95% PROCTOR MODIFICADO","m³",1,90075],[20,"IMPERMEABILIZACIÓN DE MUROS ENTERRADOS CON MEMBRANA LÍQUIDA ELÁSTICA","m²",1,60087.5],[21,"ESTRUCTURA METÁLICA EN ACERO A-36 PARA CUBIERTA","kg",1,14182.5],[22,"DEMOLICIÓN MANUAL DE MURO EN LADRILLO NO ESTRUCTURAL","m³",1,68550],[23,"LOSA ALIGERADA EN CONCRETO ESTRUCTURAL 3.000 psi, ESPESOR 0.25 m","m²",1,278156.25],[24,"SUMINISTRO E INSTALACIÓN DE AIRE ACONDICIONADO SPLIT 18.000 BTU/h","und",1,4067500],[25,"PAVIMENTO RÍGIDO EN CONCRETO MR-45 kg/cm² ESPESOR 0.20 m","m²",1,190981.25],[26,"MURO DE CONTENCIÓN EN CONCRETO CICLÓPEO","m³",1,741900],[27,"SUMINISTRO E INSTALACIÓN DE LAVAMANOS TIPO MANOS LIBRES CON SENSOR","und",1,2326875],[28,"ENCHAPE CERÁMICO EN FACHADA 30x45 cm TIPO CORONA ARCHITECTURAL","m²",1,183047.5],[29,"INSTALACIÓN DE PLANTA ELÉCTRICA DIÉSEL 45 KVA TRIFÁSICA","und",1,74860000],[30,"SUMINISTRO E INSTALACIÓN DE COCINA INTEGRAL MODULAR","ml",1,2791750],[31,"SISTEMA DE SEGURIDAD: CÁMARA IP EXTERIOR 4MP CON VISIÓN NOCTURNA","und",1,1437500],[32,"SUMINISTRO E INSTALACIÓN DE TANQUE ELEVADO POLIETILENO 2.000 L","und",1,2478500],[33,"SUMINISTRO E INSTALACIÓN DE PORTÓN AUTOMÁTICO CORREDIZO","m²",1,597950],[34,"FALSO PISO EN CONCRETO POBRE 1:3:6 ESPESOR 0.05 m","m²",1,38543.75],[35,"ACABADO DE MURO EN ESTUCO VENECIANO TIPO FIORENTINO","m²",1,80925],[36,"ADECUACIÓN DE BAÑO PARA PERSONAS CON MOVILIDAD REDUCIDA (PMR)","und",1,2332500],[37,"CARPINTERÍA METÁLICA: REJA DE SEGURIDAD EN VARILLA LISA ϕ1/2\"","m²",1,194750],[38,"SUMINISTRO E INSTALACIÓN DE SISTEMA HIDRONEUMÁTICO RESIDENCIAL","und",1,2502500],[39,"INSTALACIÓN DE SENSOR DE HUMO FOTOELÉCTRICO CONVENCIONAL","und",1,349312.5],[40,"SUMINISTRO E INSTALACIÓN DE PÉRGOLA EN MADERA INMUNIZADA","m²",1,363162.5],[41,"SUMINISTRO E INSTALACIÓN DE ASCENSOR HIDRÁULICO 4 PARADAS 450 kg","und",1,193300000],[42,"PISO EN PORCELANATO RECTIFICADO 60x60 cm ANTIDESLIZANTE R10","m²",1,178512.5],[43,"RED CONTRAINCENDIOS CON GABINETE Y MANGUERA 1½\"","und",1,4405000],[44,"MURO EN BLOQUE TIPO GARDEN WALL h=2.40 m","m²",1,82012.5],[45,"FACHADA VENTILADA EN ALUMINIO COMPUESTO 4 mm","m²",1,422062.5],[46,"SISTEMA DE DOMÓTICA BÁSICA KNX","und",1,26935000],[47,"PISCINA ESTRUCTURAL 8x4x1.40 m CON SISTEMA DE FILTRACIÓN","und",1,118695000],[48,"SUMINISTRO E INSTALACIÓN DE CHIMENEA A GAS 12 kW","und",1,9027500],[49,"CERRAMIENTO EN VIDRIO TEMPLADO 10 mm CON HERRAJES TIPO ARAÑA","m²",1,936250],[50,"RED DE GAS NATURAL DOMICILIARIA","und",1,2335000],[51,"INSTALACIÓN DE PANEL SOLAR FOTOVOLTAICO ON-GRID 5 kW","und",1,19535000],[52,"MURO VERDE HIDROPÓNICO VERTICAL 20 m²","m²",1,402250],[53,"ENCHAPE EN PIEDRA NATURAL LAJA 3-5 cm","m²",1,191100],[54,"SISTEMA DE ASPIRACIÓN CENTRALIZADA","und",1,14810000],[55,"SUMINISTRO E INSTALACIÓN DE SAUNA SECO 4 PERSONAS","und",1,15980000],[56,"PISO ELEVADO TÉCNICO 60x60 cm REGISTRABLE","m²",1,215525],[57,"CUBIERTA VERDE EXTENSIVA CON SEDUM","m²",1,196500],[58,"INSTALACIÓN DE CERRADURA BIOMÉTRICA + TECLADO + TARJETA","und",1,1945375],[59,"POZO SÉPTICO + CAJA DE INSPECCIÓN 3000 L","und",1,5358000],[60,"SUMINISTRO E INSTALACIÓN DE CALDERA ELÉCTRICA 24 kW","und",1,17385000],[61,"JARDÍN VERTICAL ARTIFICIAL PREMIUM","m²",1,298300],[62,"PAVIMENTO EN GRASS BLOCK CON CÉSPED","m²",1,87062.5],[63,"SISTEMA DE RIEGO AUTOMÁTICO POR ASPERSIÓN","zona",1,3228000],[64,"INSTALACIÓN DE ESPEJO DECORATIVO CON LUZ LED PERIMETRAL","und",1,718250],[65,"MURO EN GAVIONES CAJA 1x1x2 m","m³",1,408750],[66,"SUMINISTRO E INSTALACIÓN DE PUERTA SECCIONAL AUTOMÁTICA","und",1,9007500],[67,"PISO EN MADERA INGENIERADA 15 mm TRÁFICO ALTO","m²",1,186287.5],[68,"RED DE VOZ Y DATOS ESTRUCTURADA CAT6A","punto",1,605625],[69,"INSTALACIÓN DE CALEFACCIÓN POR RADIADORES ALUMINIO","zona",1,1283500],[70,"SUMINISTRO E INSTALACIÓN DE JACUZZI EXTERIOR 6 PERSONAS","und",1,36445000],[71,"CERRAMIENTO EN POLICARBONATO ALVEOLAR 16 mm BRONCE","m²",1,213550],[72,"SISTEMA DE ALARMA CONTRAINCENDIOS DIRECCIONABLE","und",1,26815000],[73,"PAVIMENTO EN PIEDRA CORAL 30x30 cm","m²",1,218775],[74,"SUMINISTRO E INSTALACIÓN DE BOMBA SUMERGIBLE 2 HP POZO PROFUNDO","und",1,5755000],[75,"ENCHAPE EN MÁRMOL TRAVERTINO 40x60 cm PULIDO","m²",1,339562.5],[76,"SISTEMA DE VIDEOPORTERO IP COLOR 7\"","und",1,3016250],[77,"CUBIERTA EN TEJA DE ARCILLA TIPO ESPAÑOLA","m²",1,186537.5],[78,"INSTALACIÓN DE PUERTA TIPO VAIVÉN EN VIDRIO TEMPLADO 12 mm","und",1,3016250],[79,"SUMINISTRO E INSTALACIÓN DE CALENTADOR SOLAR 300 L 24 TUBOS","und",1,6877500],[80,"MURO DECORATIVO EN PIEDRA CULTURAL TIPO RÚSTICA","m²",1,177037.5]],"a":[{"i":1,"t":"IMPERMEABILIZACIÓN CON MANTO ASFÁLTICO APP 4 mm EN CUBIERTA","u":"m²","m":[["Manto asfáltico APP 4 mm","m²",38000,1.15,43700],["Imprimante base solvente","kg",18500,0.3,5550],["Gas propano soplete (proporcional)","gl",85000,0.02,1700],["Mortero 1:3 media caña (proporcional)","m³",380000,0.005,1900]],"l":[["Oficial de construcción",180000,22500,0.6,13500],["Ayudante de construcción",120000,15000,0.6,9000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1125],["Soplete termofusionado","día",45000,0.08,3600]]},{"i":2,"t":"CONCRETO ESTRUCTURAL 3.500 psi PARA VIGAS Y COLUMNAS","u":"m³","m":[["Concreto premezclado 3500 psi","m³",520000,1.05,546000],["Membrana de curado químico","kg",22000,0.2,4400]],"l":[["Oficial de construcción",180000,22500,5,112500],["Ayudante de construcción",120000,15000,14,210000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,16125],["Vibrador de aguja","día",65000,0.5,32500],["Bombeo concreto","m³",45000,1.05,47250]]},{"i":3,"t":"EXCAVACIÓN MECÁNICA PARA CIMIENTOS PROFUNDIDAD h=2.50 m","u":"m³","m":[["Combustible ACPM retroexcavadora","gl",10500,0.8,8400]],"l":[["Oficial de construcción",180000,22500,0.1,2250],["Ayudante de construcción",120000,15000,0.5,7500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,487.5],["Retroexcavadora CAT 420","hora",180000,0.15,27000],["Bomba achique (si necesario)","día",65000,0.05,3250]]},{"i":4,"t":"MURO EN LADRILLO PRENSADO H-10 PERFORACIÓN VERTICAL 0.12x0.24x0.06 m","u":"m²","m":[["Ladrillo prensado H-10 0.12x0.24x0.06","und",1350,65,87750],["Mortero de pega 1:4","m³",340000,0.025,8500],["Grout f'c=35 MPa","m³",480000,0.008,3840],["Dovela Ø 3/8\"","und",850,3.3,2805]],"l":[["Oficial de construcción",180000,22500,1.3,29250],["Ayudante de construcción",120000,15000,1.3,19500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,2437.5],["Nivel láser","día",45000,0.05,2250]]},{"i":5,"t":"CUBIERTA EN TEJA TERMOACÚSTICA ESPESOR 30 mm","u":"m²","m":[["Teja termoacústica panel sándwich 30mm","m²",68000,1.05,71400],["Correa metálica cubierta","ml",28000,0.8,22400],["Tornillería autoperforante arandela EPDM","und",450,8,3600],["Remate cumbrera metálico (proporcional)","ml",32000,0.1,3200],["Remate lateral cubierta (proporcional)","ml",28000,0.1,2800]],"l":[["Oficial de construcción",180000,22500,0.45,10125],["Ayudante de construcción",120000,15000,0.45,6750]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,843.75],["Andamio certificado alturas","día",35000,0.08,2800],["EPP completo alturas","día",25000,0.08,2000]]},{"i":6,"t":"SUMINISTRO E INSTALACIÓN DE TABLERO ELÉCTRICO TRIFÁSICO 120/208V, 24 CIRCUITOS","u":"und","m":[["Tablero eléctrico trifásico 120/208V 24 ctos NEMA 1","und",1850000,1,1850000],["Breaker termomagnético (promedio) x24","und",45000,24,1080000],["Barraje cobre neutro y tierra","jgo",180000,1,180000],["Tubo EMT conduit acometida","ml",18500,6,111000]],"l":[["Oficial de construcción",180000,22500,8,180000],["Ayudante de construcción",120000,15000,8,120000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,15000],["Taladro percutor","día",35000,1,35000]]},{"i":7,"t":"CERRAMIENTO EN MALLA ESLABONADA GALVANIZADA h=2.20 m CALIBRE 10","u":"ml","m":[["Malla eslabonada galvanizada cal.10 h=2.20m","m²",32000,2.2,70400],["Poste tubo galvanizado Ø2½\" (1 c/3m)","und",95000,0.33,31350],["Concreto 3000 psi zapatas postes","m³",460000,0.027,12420],["Tensores alambre galvanizado","und",3500,2,7000],["Alambre púas galvanizado (3 líneas)","ml",625,3,1875],["Puerta acceso 1.00m (prorrateo)","und",285000,0.03,8550]],"l":[["Oficial de construcción",180000,22500,0.5,11250],["Ayudante de construcción",120000,15000,0.7,10500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1087.5],["Taladro percutor","día",35000,0.05,1750]]},{"i":8,"t":"INSTALACIÓN DE INODORO AHORRADOR DUAL FLUSH 4.8/3 L","u":"und","m":[["Inodoro ahorrador dual flush 4.8/3L porcelana","und",380000,1,380000],["Flanche PVC","und",8500,1,8500],["Pernos anclaje inoxidables con tapas","jgo",12000,1,12000],["Acople flexible","und",15000,1,15000],["Grifería interna completa","jgo",65000,1,65000],["Asiento polipropileno","und",45000,1,45000]],"l":[["Oficial de construcción",180000,22500,2.66,59850],["Ayudante de construcción",120000,15000,2.66,39900]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,4987.5]]},{"i":9,"t":"PISO EN ADOQUÍN DE CONCRETO 6 cm TIPO UNIVERSO COLOR NATURAL","u":"m²","m":[["Adoquín concreto 6cm tipo universo","m²",32000,1.05,33600],["Sub-base granular (e=0.15m)","m³",65000,0.15,9750],["Arena lavada cama 3-4cm","m³",55000,0.04,2200],["Arena de sello","m³",48000,0.005,240]],"l":[["Oficial de construcción",180000,22500,1.6,36000],["Ayudante de construcción",120000,15000,1.6,24000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3000],["Placa vibratoria compactadora","día",85000,0.1,8500],["Cortadora adoquín","día",65000,0.05,3250]]},{"i":10,"t":"VENTANERÍA EN ALUMINIO SERIE 25 CON VIDRIO CLARO 6 mm","u":"m²","m":[["Ventanería aluminio serie 25 vidrio 6mm","m²",285000,1,285000],["Silicona estructural y neutra","cartucho",28000,0.3,8400],["Anclajes químicos ventanería","und",8500,4,34000],["Herrajes operación ventanería","jgo",45000,0.5,22500],["Felpas sellamiento","ml",3500,4,14000]],"l":[["Oficial de construcción",180000,22500,1.2,27000],["Ayudante de construcción",120000,15000,1.2,18000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,2250],["Taladro percutor","día",35000,0.15,5250]]},{"i":11,"t":"CIELO RASO EN DRYWALL RH 1/2\" CON PERFILERÍA METÁLICA","u":"m²","m":[["Lámina drywall RH 1/2\" (1.22x2.44m)","und",48000,0.34,16320],["Canal galvanizado 89mm","ml",6500,0.8,5200],["Paral galvanizado 89mm","ml",6800,0.8,5440],["Alambre galvanizado suspensión","kg",8500,0.15,1275],["Cinta papel juntas drywall","rollo",12000,0.03,360],["Masilla juntas drywall","kg",8500,0.5,4250],["Pintura vinílica blanca (2 manos)","gl",62000,0.07,4340]],"l":[["Oficial de construcción",180000,22500,0.7,15750],["Ayudante de construcción",120000,15000,0.7,10500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1312.5],["Andamio","día",35000,0.05,1750]]},{"i":12,"t":"BORDILLO PREFABRICADO TIPO INVÍAS CLASE I h=15 cm","u":"ml","m":[["Bordillo prefabricado INVÍAS Clase I h=15cm","ml",28000,1,28000],["Concreto 3000 psi base (e=10cm)","m³",460000,0.015,6900],["Mortero nivelación","m³",340000,0.003,1020],["Sikaflex juntas dilatación (c/3m)","cartucho",32000,0.05,1600]],"l":[["Oficial de construcción",180000,22500,0.8,18000],["Ayudante de construcción",120000,15000,0.8,12000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1500],["Nivel láser","día",45000,0.03,1350]]},{"i":13,"t":"SISTEMA DE PUESTA A TIERRA RESIDENCIAL","u":"und","m":[["Varilla copperweld 5/8\"x2.40m","und",85000,1,85000],["Conductor desnudo No.2 AWG","ml",18500,15,277500],["Soldadura exotérmica","und",35000,2,70000],["Pozo inspección 30x30cm con tapa","und",95000,1,95000]],"l":[["Oficial de construcción",180000,22500,4,90000],["Ayudante de construcción",120000,15000,4,60000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,7500],["Equipo medición resistencia tierra","día",120000,0.5,60000]]},{"i":14,"t":"PUERTA METÁLICA EN LÁMINA COLD ROLLED CALIBRE 18","u":"und","m":[["Puerta metálica lámina cold rolled cal.18 c/marco","und",650000,1,650000],["Cerradura de seguridad","und",125000,1,125000],["Bisagras 4\"","und",18000,3,54000],["Wash primer + esmalte anticorrosivo","gl",85000,0.5,42500],["Anclajes químicos puerta","und",8500,6,51000],["Silicona sello perimetral","cartucho",18000,1,18000]],"l":[["Oficial de construcción",180000,22500,2,45000],["Ayudante de construcción",120000,15000,2,30000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3750],["Taladro percutor","día",35000,0.25,8750]]},{"i":15,"t":"RED DE DATOS: PUNTO UTP CATEGORÍA 6 CERTIFICADO","u":"und","m":[["Cable UTP Cat6 certificado","ml",4500,30,135000],["Tubo EMT 3/4\"","ml",12500,10,125000],["Caja rectangular","und",4500,1,4500],["Faceplate + Jack RJ45","und",18000,1,18000],["Patch cord prueba","und",12000,1,12000]],"l":[["Oficial de construcción",180000,22500,2.3,51750],["Ayudante de construcción",120000,15000,2.3,34500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,4312.5],["Equipo Fluke tester certificación","día",250000,0.1,25000]]},{"i":16,"t":"PINTURA VINÍLICA TIPO 1 EN MUROS INTERIORES","u":"m²","m":[["Pintura vinílica tipo 1 lavable","gl",72000,0.07,5040],["Estuco plástico","kg",4500,0.3,1350],["Sellador acrílico base agua","gl",45000,0.03,1350],["Lija","pliego",2500,0.2,500],["Rodillo de felpa","und",12000,0.02,240]],"l":[["Oficial de construcción",180000,22500,0.4,9000],["Ayudante de construcción",120000,15000,0.1,1500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,525],["Escalera extensible","día",25000,0.02,500]]},{"i":17,"t":"SUMINISTRO E INSTALACIÓN DE CALENTADOR DE AGUA A GAS 10 L/min","u":"und","m":[["Calentador agua gas 10L/min tiro natural","und",850000,1,850000],["Tubería cobre tipo M","ml",28000,4,112000],["Válvula corte 1/2\"","und",25000,2,50000],["Tubería cobre gas","ml",32000,3,96000],["Válvula individual gas","und",35000,1,35000],["Ducto evacuación aluminio","ml",22000,2,44000]],"l":[["Oficial de construcción",180000,22500,4,90000],["Ayudante de construcción",120000,15000,4,60000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,7500],["Equipo soldadura cobre","día",55000,0.5,27500]]},{"i":18,"t":"CANALETA DE DRENAJE SUPERFICIAL CON REJILLA FUNDIDA CLASE B125","u":"ml","m":[["Canaleta drenaje superficial con rejilla B125","ml",125000,1,125000],["Concreto pobre cama apoyo","m³",320000,0.015,4800],["Mortero anclaje 1:3","m³",380000,0.005,1900],["Mortero impermeabilizado uniones","kg",8500,0.5,4250]],"l":[["Oficial de construcción",180000,22500,0.6,13500],["Ayudante de construcción",120000,15000,0.6,9000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1125],["Nivel láser","día",45000,0.03,1350]]},{"i":19,"t":"RELLENO CON RECEBO B-200 COMPACTADO AL 95% PROCTOR MODIFICADO","u":"m³","m":[["Recebo B-200 (incluye transporte)","m³",42000,1.25,52500]],"l":[["Oficial de construcción",180000,22500,0.2,4500],["Ayudante de construcción",120000,15000,0.8,12000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,825],["Vibroplaca / rodillo compactación","día",95000,0.15,14250],["Carrotanque humectación","viaje",120000,0.05,6000]]},{"i":20,"t":"IMPERMEABILIZACIÓN DE MUROS ENTERRADOS CON MEMBRANA LÍQUIDA ELÁSTICA","u":"m²","m":[["Membrana líquida elastomérica (2 manos)","kg",32000,0.8,25600],["Imprimación acrílica","kg",22000,0.2,4400],["Geotextil NT-3000","m²",6500,1.1,7150],["Grava drenaje francés (proporcional)","m³",65000,0.05,3250]],"l":[["Oficial de construcción",180000,22500,0.5,11250],["Ayudante de construcción",120000,15000,0.5,7500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,937.5]]},{"i":21,"t":"ESTRUCTURA METÁLICA EN ACERO A-36 PARA CUBIERTA","u":"kg","m":[["Acero A-36 perfil IPE/HEB/cerchas","kg",6800,1.05,7140],["Platinas de anclaje (prorrateo)","und",35000,0.005,175],["Pernos alta resistencia ASTM A-325 (prorrateo)","und",8500,0.02,170],["Pintura epóxica anticorrosiva (prorrateo)","gl",145000,0.003,435],["Sandblasting SA 2.5 (prorrateo)","m²",25000,0.01,250]],"l":[["Oficial de construcción",180000,22500,0.1,2250],["Ayudante de construcción",120000,15000,0.1,1500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,187.5],["Equipo soldadura","día",55000,0.015,825],["Grúa telescópica montaje","hora",250000,0.005,1250]]},{"i":22,"t":"DEMOLICIÓN MANUAL DE MURO EN LADRILLO NO ESTRUCTURAL","u":"m³","m":[["Transporte escombros a botadero (volqueta)","viaje",180000,0.15,27000]],"l":[["Oficial de construcción",180000,22500,0,0],["Ayudante de construcción",120000,15000,2.4,36000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1800],["Compresor (si aplica)","día",75000,0.05,3750]]},{"i":23,"t":"LOSA ALIGERADA EN CONCRETO ESTRUCTURAL 3.000 psi, ESPESOR 0.25 m","u":"m²","m":[["Concreto premezclado 3000 psi","m³",460000,0.12,55200],["Formaleta madera/metálica losa","m²",18000,1.05,18900],["Casetones recuperables","und",4500,8,36000],["Acero refuerzo 60000 psi (proporcional)","kg",4200,8,33600]],"l":[["Oficial de construcción",180000,22500,2.25,50625],["Ayudante de construcción",120000,15000,4.2,63000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,5681.25],["Vibrador aguja","día",65000,0.15,9750],["Bombeo concreto","m³",45000,0.12,5400]]},{"i":24,"t":"SUMINISTRO E INSTALACIÓN DE AIRE ACONDICIONADO SPLIT 18.000 BTU/h","u":"und","m":[["Aire acondicionado split 18000BTU evap+cond","und",3200000,1,3200000],["Tubería cobre aislada A/C","ml",45000,5,225000],["Bomba condensado","und",185000,1,185000],["Gas refrigerante R-410A","kg",65000,1.5,97500]],"l":[["Oficial de construcción",180000,22500,8,180000],["Ayudante de construcción",120000,15000,8,120000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,15000],["Equipo soldadura cobre","día",55000,0.5,27500],["Taladro percutor","día",35000,0.5,17500]]},{"i":25,"t":"PAVIMENTO RÍGIDO EN CONCRETO MR-45 kg/cm² ESPESOR 0.20 m","u":"m²","m":[["Concreto premezclado 3500 psi (MR-45)","m³",520000,0.21,109200],["Sub-base granular","m³",65000,0.15,9750],["Lámina polietileno","m²",3500,1.1,3850],["Malla electrosoldada 6x6-6/6","m²",12500,1.05,13125],["Sello elastomérico juntas","ml",15000,0.3,4500],["Membrana curado química","kg",22000,0.15,3300]],"l":[["Oficial de construcción",180000,22500,0.25,5625],["Ayudante de construcción",120000,15000,2.2,33000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1931.25],["Cortadora juntas","día",65000,0.03,1950],["Vibroplaca","día",95000,0.05,4750]]},{"i":26,"t":"MURO DE CONTENCIÓN EN CONCRETO CICLÓPEO","u":"m³","m":[["Concreto ciclópeo (60%concreto+40%piedra)","m³",380000,1.05,399000],["Acero refuerzo horizontal y vertical","kg",4200,15,63000],["Geodrén","m²",28000,0.3,8400],["Gravilla filtro","m³",65000,0.1,6500],["Emulsión asfáltica impermeabilizante","gl",35000,0.5,17500]],"l":[["Oficial de construcción",180000,22500,2,45000],["Ayudante de construcción",120000,15000,11,165000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,10500],["Formaleta contención","m²",3500,4,14000],["Vibrador aguja","día",65000,0.2,13000]]},{"i":27,"t":"SUMINISTRO E INSTALACIÓN DE LAVAMANOS TIPO MANOS LIBRES CON SENSOR","u":"und","m":[["Lavamanos porcelana manos libres sensor","und",1250000,1,1250000],["Grifería electrónica sensor infrarrojo","und",450000,1,450000],["Válvula solenoide","und",185000,1,185000],["Mezclador termostático","und",220000,1,220000],["Desagüe cromado + sifón botella","jgo",95000,1,95000]],"l":[["Oficial de construcción",180000,22500,3,67500],["Ayudante de construcción",120000,15000,3,45000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,5625],["Taladro percutor","día",35000,0.25,8750]]},{"i":28,"t":"ENCHAPE CERÁMICO EN FACHADA 30x45 cm TIPO CORONA ARCHITECTURAL","u":"m²","m":[["Cerámica fachada 30x45 Corona Architectural","m²",52000,1.08,56160],["Pañete maestreado impermeabilizado","m²",22000,1,22000],["Adhesivo cementoso exteriores","kg",3200,6,19200],["Boquilla impermeable color","kg",6500,1.5,9750],["Espaciadores","bolsa",3500,0.2,700],["Ácido muriático diluido limpieza","gl",15000,0.02,300]],"l":[["Oficial de construcción",180000,22500,1.7,38250],["Ayudante de construcción",120000,15000,1.7,25500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3187.5],["Cortadora eléctrica enchape","día",45000,0.1,4500],["Andamio","día",35000,0.1,3500]]},{"i":29,"t":"INSTALACIÓN DE PLANTA ELÉCTRICA DIÉSEL 45 KVA TRIFÁSICA","u":"und","m":[["Planta eléctrica diésel 45KVA trifásica completa","und",65000000,1,65000000],["Tablero transferencia automática","und",8500000,1,8500000],["Concreto 3000 psi base","m³",460000,0.5,230000]],"l":[["Oficial de construcción",180000,22500,16,360000],["Ayudante de construcción",120000,15000,16,240000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,30000],["Grúa telescópica montaje","hora",250000,2,500000]]},{"i":30,"t":"SUMINISTRO E INSTALACIÓN DE COCINA INTEGRAL MODULAR","u":"ml","m":[["Cocina integral modular MDF fórmica","ml",1850000,1,1850000],["Mesón granito natural pulido","ml",450000,1,450000],["Bisagras hidráulicas","und",18000,6,108000],["Herrajes cocina calidad","jgo",85000,1,85000],["Salpicadero cerámico","ml",45000,1,45000]],"l":[["Oficial de construcción",180000,22500,6,135000],["Ayudante de construcción",120000,15000,6,90000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,11250],["Taladro percutor","día",35000,0.5,17500]]},{"i":31,"t":"SISTEMA DE SEGURIDAD: CÁMARA IP EXTERIOR 4MP CON VISIÓN NOCTURNA","u":"und","m":[["Cámara IP exterior 4MP domo vandal proof","und",650000,1,650000],["NVR grabación (prorrateo)","und",1200000,0.25,300000],["Cable UTP Cat6 exterior","ml",5500,30,165000],["Fuente poder 12V","und",45000,1,45000],["Tubo galvanizado canalización","ml",18000,5,90000]],"l":[["Oficial de construcción",180000,22500,4,90000],["Ayudante de construcción",120000,15000,4,60000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,7500],["Taladro percutor","día",35000,0.5,17500],["Escalera extensible","día",25000,0.5,12500]]},{"i":32,"t":"SUMINISTRO E INSTALACIÓN DE TANQUE ELEVADO POLIETILENO 2.000 L","u":"und","m":[["Tanque polietileno 2000L tricapa UV","und",850000,1,850000],["Estructura metálica soporte ángulo galvanizado","jgo",650000,1,650000],["Concreto 3000 psi cimentación torre","m³",460000,0.3,138000],["Accesorios hidráulicos tanque","jgo",185000,1,185000],["Tubería alimentación y distribución","jgo",250000,1,250000]],"l":[["Oficial de construcción",180000,22500,8,180000],["Ayudante de construcción",120000,15000,12,180000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,18000],["Equipo soldadura","día",55000,0.5,27500]]},{"i":33,"t":"SUMINISTRO E INSTALACIÓN DE PORTÓN AUTOMÁTICO CORREDIZO","u":"m²","m":[["Portón automático corredizo estructura+lámina","m²",320000,1,320000],["Motor reductor 1/2 HP","und",1250000,0.1,125000],["Cremallera metálica","ml",45000,0.5,22500],["Sensores seguridad","jgo",185000,0.1,18500],["Control remoto","und",65000,0.2,13000],["Concreto 3000 psi rieles","m³",460000,0.02,9200]],"l":[["Oficial de construcción",180000,22500,2,45000],["Ayudante de construcción",120000,15000,2,30000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3750],["Equipo soldadura","día",55000,0.2,11000]]},{"i":34,"t":"FALSO PISO EN CONCRETO POBRE 1:3:6 ESPESOR 0.05 m","u":"m²","m":[["Concreto pobre 1:3:6","m³",280000,0.055,15400],["Polietileno cal.6 mil","m²",3500,1.1,3850]],"l":[["Oficial de construcción",180000,22500,0.15,3375],["Ayudante de construcción",120000,15000,1,15000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,918.75]]},{"i":35,"t":"ACABADO DE MURO EN ESTUCO VENECIANO TIPO FIORENTINO","u":"m²","m":[["Estuco veneciano tipo Fiorentino (3 manos)","kg",45000,0.8,36000],["Imprimante base estuco veneciano","kg",28000,0.15,4200],["Cera protectora estuco","lt",65000,0.05,3250],["Lija fina","pliego",2500,0.5,1250]],"l":[["Oficial de construcción",180000,22500,1.2,27000],["Ayudante de construcción",120000,15000,0.5,7500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1725]]},{"i":36,"t":"ADECUACIÓN DE BAÑO PARA PERSONAS CON MOVILIDAD REDUCIDA (PMR)","u":"und","m":[["Inodoro elevado PMR h=45cm","und",520000,1,520000],["Barra apoyo abatible inodoro","und",285000,1,285000],["Lavamanos suspendido grifería monomando","und",450000,1,450000],["Espejo inclinable PMR","und",185000,1,185000],["Barras apoyo ducha","jgo",320000,1,320000],["Señalización accesibilidad","jgo",65000,1,65000]],"l":[["Oficial de construcción",180000,22500,12,270000],["Ayudante de construcción",120000,15000,12,180000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,22500],["Taladro percutor","día",35000,1,35000]]},{"i":37,"t":"CARPINTERÍA METÁLICA: REJA DE SEGURIDAD EN VARILLA LISA ϕ1/2\"","u":"m²","m":[["Reja seguridad varilla lisa + bastidor ángulo","m²",145000,1,145000],["Anticorrosivo + esmalte sintético","gl",85000,0.15,12750]],"l":[["Oficial de construcción",180000,22500,0.8,18000],["Ayudante de construcción",120000,15000,0.8,12000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1500],["Equipo soldadura","día",55000,0.1,5500]]},{"i":38,"t":"SUMINISTRO E INSTALACIÓN DE SISTEMA HIDRONEUMÁTICO RESIDENCIAL","u":"und","m":[["Bomba centrífuga 1HP","und",850000,1,850000],["Tanque hidroneumático 80L","und",650000,1,650000],["Presostato + manómetro","jgo",125000,1,125000],["Válvulas corte y accesorios","jgo",185000,1,185000],["Tablero control hidroneumático","und",350000,1,350000]],"l":[["Oficial de construcción",180000,22500,8,180000],["Ayudante de construcción",120000,15000,8,120000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,15000],["Equipo soldadura","día",55000,0.5,27500]]},{"i":39,"t":"INSTALACIÓN DE SENSOR DE HUMO FOTOELÉCTRICO CONVENCIONAL","u":"und","m":[["Sensor humo fotoeléctrico convencional","und",125000,1,125000],["Cable certificado incendios","ml",8500,15,127500]],"l":[["Oficial de construcción",180000,22500,2.3,51750],["Ayudante de construcción",120000,15000,2.3,34500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,4312.5],["Escalera extensible","día",25000,0.25,6250]]},{"i":40,"t":"SUMINISTRO E INSTALACIÓN DE PÉRGOLA EN MADERA INMUNIZADA","u":"m²","m":[["Pérgola madera inmunizada (columnas+vigas+correas)","m²",285000,1,285000],["Stain protector madera","gl",85000,0.06,5100],["Tornillería galvanizada pérgola","jgo",45000,0.1,4500],["Anclajes químicos pérgola","und",12000,0.5,6000]],"l":[["Oficial de construcción",180000,22500,1.5,33750],["Ayudante de construcción",120000,15000,1.5,22500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,2812.5],["Taladro percutor","día",35000,0.1,3500]]},{"i":41,"t":"SUMINISTRO E INSTALACIÓN DE ASCENSOR HIDRÁULICO 4 PARADAS 450 kg","u":"und","m":[["Ascensor hidráulico 4 paradas 450kg completo","und",185000000,1,185000000]],"l":[["Oficial de construcción",180000,22500,160,3600000],["Ayudante de construcción",120000,15000,160,2400000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,300000],["Grúa telescópica montaje","hora",250000,8,2000000]]},{"i":42,"t":"PISO EN PORCELANATO RECTIFICADO 60x60 cm ANTIDESLIZANTE R10","u":"m²","m":[["Porcelanato rectificado 60x60 antideslizante R10","m²",65000,1.08,70200],["Mortero autonivelante","kg",4500,3,13500],["Adhesivo cementoso C2TE S1","kg",3800,6,22800],["Boquilla epóxica gris","kg",18000,0.5,9000],["Espaciadores 2mm","bolsa",3500,0.2,700]],"l":[["Oficial de construcción",180000,22500,1.5,33750],["Ayudante de construcción",120000,15000,1.5,22500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,2812.5],["Cortadora disco diamantado","día",65000,0.05,3250]]},{"i":43,"t":"RED CONTRAINCENDIOS CON GABINETE Y MANGUERA 1½\"","u":"und","m":[["Gabinete contraincendios rojo vidrio completo","und",2850000,1,2850000],["Manguera semi-rígida 30m + pitón","jgo",650000,1,650000],["Válvula globo 2½\"","und",185000,1,185000],["Conexión siamesa","und",350000,1,350000]],"l":[["Oficial de construcción",180000,22500,8,180000],["Ayudante de construcción",120000,15000,8,120000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,15000],["Equipo soldadura","día",55000,1,55000]]},{"i":44,"t":"MURO EN BLOQUE TIPO GARDEN WALL h=2.40 m","u":"m²","m":[["Bloque concreto visto 15x20x40 garden wall","und",3200,12.5,40000],["Mortero de pega 1:4","m³",340000,0.02,6800],["Acero amarre Ø8mm c/4 hileras","kg",4200,1.5,6300]],"l":[["Oficial de construcción",180000,22500,0.7,15750],["Ayudante de construcción",120000,15000,0.7,10500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1312.5],["Nivel láser","día",45000,0.03,1350]]},{"i":45,"t":"FACHADA VENTILADA EN ALUMINIO COMPUESTO 4 mm","u":"m²","m":[["Panel ACM aluminio compuesto 4mm Alucobond","m²",185000,1.05,194250],["Subestructura aluminio extrusionado","m²",95000,1,95000],["Aislamiento lana roca 50mm","m²",32000,1,32000],["Perfil EPDM juntas","ml",12000,2,24000],["Remaches ciegos","und",450,20,9000]],"l":[["Oficial de construcción",180000,22500,1.5,33750],["Ayudante de construcción",120000,15000,1.5,22500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,2812.5],["Andamio certificado","día",35000,0.15,5250],["Taladro percutor","día",35000,0.1,3500]]},{"i":46,"t":"SISTEMA DE DOMÓTICA BÁSICA KNX","u":"und","m":[["Sistema domótica KNX completo","und",25000000,1,25000000]],"l":[["Oficial de construcción",180000,22500,40,900000],["Ayudante de construcción",120000,15000,40,600000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,75000],["Equipo programación","día",120000,3,360000]]},{"i":47,"t":"PISCINA ESTRUCTURAL 8x4x1.40 m CON SISTEMA DE FILTRACIÓN","u":"und","m":[["Piscina estructural concreto armado completa","und",85000000,1,85000000],["Sistema filtración (bomba+filtro+skimmer+boquillas)","und",8500000,1,8500000],["Membrana PVC armada","m²",85000,65,5525000],["Borde piedra coral","ml",125000,24,3000000]],"l":[["Oficial de construcción",180000,22500,320,7200000],["Ayudante de construcción",120000,15000,480,7200000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,720000],["Vibrador aguja","día",65000,10,650000],["Bombeo concreto","m³",45000,20,900000]]},{"i":48,"t":"SUMINISTRO E INSTALACIÓN DE CHIMENEA A GAS 12 kW","u":"und","m":[["Chimenea gas 12kW cerrada completa","und",8500000,1,8500000],["Ducto salida coaxial Ø80/125mm","ml",65000,3,195000]],"l":[["Oficial de construcción",180000,22500,8,180000],["Ayudante de construcción",120000,15000,8,120000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,15000],["Taladro percutor","día",35000,0.5,17500]]},{"i":49,"t":"CERRAMIENTO EN VIDRIO TEMPLADO 10 mm CON HERRAJES TIPO ARAÑA","u":"m²","m":[["Vidrio templado 10mm transparente","m²",185000,1.05,194250],["Herrajes tipo araña inox 316","und",125000,4,500000],["Silicona Dow Corning 995","cartucho",85000,0.3,25500],["Parales y travesaños ocultos","ml",95000,1,95000],["Anclajes químicos","und",8500,4,34000]],"l":[["Oficial de construcción",180000,22500,2,45000],["Ayudante de construcción",120000,15000,2,30000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3750],["Andamio","día",35000,0.15,5250],["Taladro percutor","día",35000,0.1,3500]]},{"i":50,"t":"RED DE GAS NATURAL DOMICILIARIA","u":"und","m":[["Tubería Schedule 40 gas natural","ml",35000,25,875000],["Válvula corte gas por zona","und",45000,5,225000],["Regulador presión gas","und",185000,1,185000],["Medidor externo gas","und",250000,1,250000]],"l":[["Oficial de construcción",180000,22500,16,360000],["Ayudante de construcción",120000,15000,16,240000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,30000],["Equipo soldadura","día",55000,2,110000],["Equipo pruebas hermeticidad","día",120000,0.5,60000]]},{"i":51,"t":"INSTALACIÓN DE PANEL SOLAR FOTOVOLTAICO ON-GRID 5 kW","u":"und","m":[["Panel solar 450W monocristalino x12","und",850000,12,10200000],["Inversor híbrido 5kW","und",4500000,1,4500000],["Estructura aluminio inclinada 20°","jgo",1850000,1,1850000],["Cableado solar + tablero protección AC/DC","jgo",1250000,1,1250000],["Sistema monitoreo remoto","und",650000,1,650000]],"l":[["Oficial de construcción",180000,22500,24,540000],["Ayudante de construcción",120000,15000,24,360000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,45000],["Taladro percutor","día",35000,2,70000],["Andamio","día",35000,2,70000]]},{"i":52,"t":"MURO VERDE HIDROPÓNICO VERTICAL 20 m²","u":"m²","m":[["Muro verde hidropónico completo","m²",320000,1,320000]],"l":[["Oficial de construcción",180000,22500,2,45000],["Ayudante de construcción",120000,15000,2,30000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3750],["Andamio","día",35000,0.1,3500]]},{"i":53,"t":"ENCHAPE EN PIEDRA NATURAL LAJA 3-5 cm","u":"m²","m":[["Piedra natural laja 3-5cm Santafé","m²",65000,1.1,71500],["Adhesivo cementoso + anclajes mecánicos","m²",18000,1,18000],["Mortero pigmentado boquilla","kg",8500,2,17000],["Sellado hidrófugo","lt",45000,0.05,2250]],"l":[["Oficial de construcción",180000,22500,2,45000],["Ayudante de construcción",120000,15000,2,30000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3750],["Cortadora eléctrica","día",45000,0.08,3600]]},{"i":54,"t":"SISTEMA DE ASPIRACIÓN CENTRALIZADA","u":"und","m":[["Sistema aspiración centralizada 1800W completo","und",12000000,1,12000000],["Tubería PVC 50mm aspiración","ml",18000,40,720000],["Puntos aspiración válvula automática x6","und",185000,6,1110000],["Manguera 9m + accesorios limpieza","jgo",350000,1,350000]],"l":[["Oficial de construcción",180000,22500,16,360000],["Ayudante de construcción",120000,15000,16,240000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,30000]]},{"i":55,"t":"SUMINISTRO E INSTALACIÓN DE SAUNA SECO 4 PERSONAS","u":"und","m":[["Sauna seco 4 personas completo","und",15000000,1,15000000]],"l":[["Oficial de construcción",180000,22500,24,540000],["Ayudante de construcción",120000,15000,24,360000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,45000],["Taladro percutor","día",35000,1,35000]]},{"i":56,"t":"PISO ELEVADO TÉCNICO 60x60 cm REGISTRABLE","u":"m²","m":[["Piso elevado técnico completo","m²",185000,1.03,190550]],"l":[["Oficial de construcción",180000,22500,0.6,13500],["Ayudante de construcción",120000,15000,0.6,9000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1125],["Nivel láser","día",45000,0.03,1350]]},{"i":57,"t":"CUBIERTA VERDE EXTENSIVA CON SEDUM","u":"m²","m":[["Cubierta verde extensiva completa","m²",165000,1,165000]],"l":[["Oficial de construcción",180000,22500,0.8,18000],["Ayudante de construcción",120000,15000,0.8,12000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1500]]},{"i":58,"t":"INSTALACIÓN DE CERRADURA BIOMÉTRICA + TECLADO + TARJETA","u":"und","m":[["Cerradura biométrica + teclado + tarjeta + app","und",1850000,1,1850000]],"l":[["Oficial de construcción",180000,22500,3,67500],["Ayudante de construcción",120000,15000,1,15000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,4125],["Taladro percutor","día",35000,0.25,8750]]},{"i":59,"t":"POZO SÉPTICO + CAJA DE INSPECCIÓN 3000 L","u":"und","m":[["Pozo séptico anillos concreto 3000L completo","und",3500000,1,3500000],["Caja inspección 60x60 con tapa","und",250000,1,250000],["Tubería PVC 4\" entrada/salida","ml",22000,6,132000]],"l":[["Oficial de construcción",180000,22500,16,360000],["Ayudante de construcción",120000,15000,24,360000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,36000],["Retroexcavadora","hora",180000,4,720000]]},{"i":60,"t":"SUMINISTRO E INSTALACIÓN DE CALDERA ELÉCTRICA 24 kW","u":"und","m":[["Caldera eléctrica 24kW mural modulante","und",12000000,1,12000000],["Depósito acumulador 200L inox","und",3500000,1,3500000],["Bomba circuladora + vaso expansión","jgo",850000,1,850000],["Termostatos ambiente x2","jgo",350000,1,350000]],"l":[["Oficial de construcción",180000,22500,16,360000],["Ayudante de construcción",120000,15000,16,240000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,30000],["Equipo soldadura","día",55000,1,55000]]},{"i":61,"t":"JARDÍN VERTICAL ARTIFICIAL PREMIUM","u":"m²","m":[["Jardín vertical artificial premium paneles UV","m²",185000,1,185000],["Estructura metálica oculta","m²",45000,1,45000],["Anclajes químicos","und",8500,4,34000]],"l":[["Oficial de construcción",180000,22500,0.8,18000],["Ayudante de construcción",120000,15000,0.8,12000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1500],["Taladro percutor","día",35000,0.08,2800]]},{"i":62,"t":"PAVIMENTO EN GRASS BLOCK CON CÉSPED","u":"m²","m":[["Grass block concreto 40x40x10","m²",38000,1.05,39900],["Tierra vegetal + semilla césped kikuyo","m²",12000,1,12000],["Sub-base granular (e=0.10m)","m³",65000,0.1,6500]],"l":[["Oficial de construcción",180000,22500,0.5,11250],["Ayudante de construcción",120000,15000,0.8,12000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1162.5],["Placa vibratoria","día",85000,0.05,4250]]},{"i":63,"t":"SISTEMA DE RIEGO AUTOMÁTICO POR ASPERSIÓN","u":"zona","m":[["Sistema riego automático aspersión completo","zona",2850000,1,2850000]],"l":[["Oficial de construcción",180000,22500,8,180000],["Ayudante de construcción",120000,15000,12,180000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,18000]]},{"i":64,"t":"INSTALACIÓN DE ESPEJO DECORATIVO CON LUZ LED PERIMETRAL","u":"und","m":[["Espejo biselado 6mm + LED + sensor + antiempañante","und",650000,1,650000]],"l":[["Oficial de construcción",180000,22500,2,45000],["Ayudante de construcción",120000,15000,1,15000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3000],["Taladro percutor","día",35000,0.15,5250]]},{"i":65,"t":"MURO EN GAVIONES CAJA 1x1x2 m","u":"m³","m":[["Gavión caja galvanizada 1x1x2m (prorrateo)","und",350000,0.5,175000],["Piedra río 15-25cm seleccionada","m³",85000,1.1,93500],["Geotextil separador","m²",5500,2,11000],["Concreto ciclópeo coronación (proporcional)","m³",380000,0.05,19000]],"l":[["Oficial de construcción",180000,22500,2,45000],["Ayudante de construcción",120000,15000,4,60000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,5250]]},{"i":66,"t":"SUMINISTRO E INSTALACIÓN DE PUERTA SECCIONAL AUTOMÁTICA","u":"und","m":[["Puerta seccional automática sandwich 40mm completa","und",8500000,1,8500000]],"l":[["Oficial de construcción",180000,22500,12,270000],["Ayudante de construcción",120000,15000,12,180000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,22500],["Taladro percutor","día",35000,1,35000]]},{"i":67,"t":"PISO EN MADERA INGENIERADA 15 mm TRÁFICO ALTO","u":"m²","m":[["Piso madera ingenierada 15mm roble tráfico alto","m²",145000,1.05,152250],["Manta anti-humedad","m²",6500,1.1,7150],["Zócalo a juego madera","ml",18000,0.4,7200]],"l":[["Oficial de construcción",180000,22500,0.5,11250],["Ayudante de construcción",120000,15000,0.5,7500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,937.5]]},{"i":68,"t":"RED DE VOZ Y DATOS ESTRUCTURADA CAT6A","u":"punto","m":[["Red voz datos Cat6A completo por punto","punto",450000,1,450000]],"l":[["Oficial de construcción",180000,22500,3,67500],["Ayudante de construcción",120000,15000,3,45000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,5625],["Equipo Fluke DSX-8000 certificación","día",250000,0.15,37500]]},{"i":69,"t":"INSTALACIÓN DE CALEFACCIÓN POR RADIADORES ALUMINIO","u":"zona","m":[["Radiador aluminio 6-10 elementos","und",450000,1,450000],["Tubería multicapa PEX-AL-PEX","ml",18000,12,216000],["Colector con purgadores","und",285000,0.25,71250],["Termostato ambiente","und",185000,1,185000],["Anticongelante","lt",25000,5,125000]],"l":[["Oficial de construcción",180000,22500,6,135000],["Ayudante de construcción",120000,15000,6,90000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,11250]]},{"i":70,"t":"SUMINISTRO E INSTALACIÓN DE JACUZZI EXTERIOR 6 PERSONAS","u":"und","m":[["Jacuzzi exterior 6 personas completo","und",35000000,1,35000000]],"l":[["Oficial de construcción",180000,22500,24,540000],["Ayudante de construcción",120000,15000,24,360000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,45000],["Grúa telescópica","hora",250000,2,500000]]},{"i":71,"t":"CERRAMIENTO EN POLICARBONATO ALVEOLAR 16 mm BRONCE","u":"m²","m":[["Policarbonato alveolar 16mm bronce","m²",85000,1.05,89250],["Estructura aluminio termolacado","m²",65000,1,65000],["Perfiles H + remates","ml",25000,1,25000]],"l":[["Oficial de construcción",180000,22500,0.8,18000],["Ayudante de construcción",120000,15000,0.8,12000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,1500],["Taladro percutor","día",35000,0.08,2800]]},{"i":72,"t":"SISTEMA DE ALARMA CONTRAINCENDIOS DIRECCIONABLE","u":"und","m":[["Sistema alarma contraincendios direccionable completo","und",25000000,1,25000000]],"l":[["Oficial de construcción",180000,22500,40,900000],["Ayudante de construcción",120000,15000,40,600000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,75000],["Equipo programación","día",120000,2,240000]]},{"i":73,"t":"PAVIMENTO EN PIEDRA CORAL 30x30 cm","u":"m²","m":[["Piedra coral 30x30cm corte diamante","m²",95000,1.08,102600],["Adhesivo cementoso doble encolado","kg",3800,6,22800],["Mortero pigmentado boquilla 5mm","kg",8500,2,17000],["Sellado hidrófugo","lt",45000,0.05,2250]],"l":[["Oficial de construcción",180000,22500,1.8,40500],["Ayudante de construcción",120000,15000,1.8,27000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3375],["Cortadora disco diamantado","día",65000,0.05,3250]]},{"i":74,"t":"SUMINISTRO E INSTALACIÓN DE BOMBA SUMERGIBLE 2 HP POZO PROFUNDO","u":"und","m":[["Bomba sumergible 2HP 4\" + motor","und",3500000,1,3500000],["Tubería impulsión PEAD 2\"","ml",25000,30,750000],["Cable sumergible","ml",18000,30,540000],["Tablero control bomba sumergible","und",650000,1,650000]],"l":[["Oficial de construcción",180000,22500,8,180000],["Ayudante de construcción",120000,15000,8,120000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,15000]]},{"i":75,"t":"ENCHAPE EN MÁRMOL TRAVERTINO 40x60 cm PULIDO","u":"m²","m":[["Mármol travertino 40x60 pulido","m²",185000,1.08,199800],["Adhesivo blanco C2TES1","kg",5500,6,33000],["Boquilla epóxica beige","kg",22000,0.5,11000]],"l":[["Oficial de construcción",180000,22500,2.3,51750],["Ayudante de construcción",120000,15000,2.3,34500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,4312.5],["Cortadora disco diamantado","día",65000,0.08,5200]]},{"i":76,"t":"SISTEMA DE VIDEOPORTERO IP COLOR 7\"","u":"und","m":[["Sistema videoportero IP color 7\" completo","und",2850000,1,2850000]],"l":[["Oficial de construcción",180000,22500,4,90000],["Ayudante de construcción",120000,15000,4,60000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,7500],["Taladro percutor","día",35000,0.25,8750]]},{"i":77,"t":"CUBIERTA EN TEJA DE ARCILLA TIPO ESPAÑOLA","u":"m²","m":[["Teja arcilla tipo española curva roja","m²",35000,1.1,38500],["Estructura madera inmunizada cubierta","m²",65000,1,65000],["Lámina asfáltica bajo teja","m²",12000,1.05,12600]],"l":[["Oficial de construcción",180000,22500,1.7,38250],["Ayudante de construcción",120000,15000,1.7,25500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3187.5],["Andamio certificado","día",35000,0.1,3500]]},{"i":78,"t":"INSTALACIÓN DE PUERTA TIPO VAIVÉN EN VIDRIO TEMPLADO 12 mm","u":"und","m":[["Puerta vaivén vidrio templado 12mm completa","und",2850000,1,2850000]],"l":[["Oficial de construcción",180000,22500,4,90000],["Ayudante de construcción",120000,15000,4,60000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,7500],["Taladro percutor","día",35000,0.25,8750]]},{"i":79,"t":"SUMINISTRO E INSTALACIÓN DE CALENTADOR SOLAR 300 L 24 TUBOS","u":"und","m":[["Calentador solar 300L 24 tubos heat pipe completo","und",6500000,1,6500000]],"l":[["Oficial de construcción",180000,22500,8,180000],["Ayudante de construcción",120000,15000,8,120000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,15000],["Andamio certificado","día",35000,1,35000],["Equipo soldadura cobre","día",55000,0.5,27500]]},{"i":80,"t":"MURO DECORATIVO EN PIEDRA CULTURAL TIPO RÚSTICA","u":"m²","m":[["Piedra cultural tipo rústica artificial 5-8cm","m²",65000,1.1,71500],["Adhesivo cementoso + anclajes c/60cm","m²",18000,1,18000],["Mortero pigmentado boquilla","kg",8500,2,17000],["Sellado hidrófugo final","lt",45000,0.03,1350]],"l":[["Oficial de construcción",180000,22500,1.7,38250],["Ayudante de construcción",120000,15000,1.7,25500]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05,1,3187.5],["Cortadora eléctrica","día",45000,0.05,2250]]}],"c":{"m":[["Manto asfáltico APP 4 mm","m²",38000],["Imprimante base solvente","kg",18500],["Gas propano soplete (proporcional)","gl",85000],["Mortero 1:3 media caña (proporcional)","m³",380000],["Concreto premezclado 3500 psi","m³",520000],["Membrana de curado químico","kg",22000],["Combustible ACPM retroexcavadora","gl",10500],["Ladrillo prensado H-10 0.12x0.24x0.06","und",1350],["Mortero de pega 1:4","m³",340000],["Grout f'c=35 MPa","m³",480000],["Dovela Ø 3/8\"","und",850],["Teja termoacústica panel sándwich 30mm","m²",68000],["Correa metálica cubierta","ml",28000],["Tornillería autoperforante arandela EPDM","und",450],["Remate cumbrera metálico (proporcional)","ml",32000],["Remate lateral cubierta (proporcional)","ml",28000],["Tablero eléctrico trifásico 120/208V 24 ctos NEMA 1","und",1850000],["Breaker termomagnético (promedio) x24","und",45000],["Barraje cobre neutro y tierra","jgo",180000],["Tubo EMT conduit acometida","ml",18500],["Malla eslabonada galvanizada cal.10 h=2.20m","m²",32000],["Poste tubo galvanizado Ø2½\" (1 c/3m)","und",95000],["Concreto 3000 psi zapatas postes","m³",460000],["Tensores alambre galvanizado","und",3500],["Alambre púas galvanizado (3 líneas)","ml",625],["Puerta acceso 1.00m (prorrateo)","und",285000],["Inodoro ahorrador dual flush 4.8/3L porcelana","und",380000],["Flanche PVC","und",8500],["Pernos anclaje inoxidables con tapas","jgo",12000],["Acople flexible","und",15000],["Grifería interna completa","jgo",65000],["Asiento polipropileno","und",45000],["Adoquín concreto 6cm tipo universo","m²",32000],["Sub-base granular (e=0.15m)","m³",65000],["Arena lavada cama 3-4cm","m³",55000],["Arena de sello","m³",48000],["Ventanería aluminio serie 25 vidrio 6mm","m²",285000],["Silicona estructural y neutra","cartucho",28000],["Anclajes químicos ventanería","und",8500],["Herrajes operación ventanería","jgo",45000],["Felpas sellamiento","ml",3500],["Lámina drywall RH 1/2\" (1.22x2.44m)","und",48000],["Canal galvanizado 89mm","ml",6500],["Paral galvanizado 89mm","ml",6800],["Alambre galvanizado suspensión","kg",8500],["Cinta papel juntas drywall","rollo",12000],["Masilla juntas drywall","kg",8500],["Pintura vinílica blanca (2 manos)","gl",62000],["Bordillo prefabricado INVÍAS Clase I h=15cm","ml",28000],["Concreto 3000 psi base (e=10cm)","m³",460000],["Mortero nivelación","m³",340000],["Sikaflex juntas dilatación (c/3m)","cartucho",32000],["Varilla copperweld 5/8\"x2.40m","und",85000],["Conductor desnudo No.2 AWG","ml",18500],["Soldadura exotérmica","und",35000],["Pozo inspección 30x30cm con tapa","und",95000],["Puerta metálica lámina cold rolled cal.18 c/marco","und",650000],["Cerradura de seguridad","und",125000],["Bisagras 4\"","und",18000],["Wash primer + esmalte anticorrosivo","gl",85000],["Anclajes químicos puerta","und",8500],["Silicona sello perimetral","cartucho",18000],["Cable UTP Cat6 certificado","ml",4500],["Tubo EMT 3/4\"","ml",12500],["Caja rectangular","und",4500],["Faceplate + Jack RJ45","und",18000],["Patch cord prueba","und",12000],["Pintura vinílica tipo 1 lavable","gl",72000],["Estuco plástico","kg",4500],["Sellador acrílico base agua","gl",45000],["Lija","pliego",2500],["Rodillo de felpa","und",12000],["Calentador agua gas 10L/min tiro natural","und",850000],["Tubería cobre tipo M","ml",28000],["Válvula corte 1/2\"","und",25000],["Tubería cobre gas","ml",32000],["Válvula individual gas","und",35000],["Ducto evacuación aluminio","ml",22000],["Canaleta drenaje superficial con rejilla B125","ml",125000],["Concreto pobre cama apoyo","m³",320000],["Mortero anclaje 1:3","m³",380000],["Mortero impermeabilizado uniones","kg",8500],["Recebo B-200 (incluye transporte)","m³",42000],["Membrana líquida elastomérica (2 manos)","kg",32000],["Imprimación acrílica","kg",22000],["Geotextil NT-3000","m²",6500],["Grava drenaje francés (proporcional)","m³",65000],["Acero A-36 perfil IPE/HEB/cerchas","kg",6800],["Platinas de anclaje (prorrateo)","und",35000],["Pernos alta resistencia ASTM A-325 (prorrateo)","und",8500],["Pintura epóxica anticorrosiva (prorrateo)","gl",145000],["Sandblasting SA 2.5 (prorrateo)","m²",25000],["Transporte escombros a botadero (volqueta)","viaje",180000],["Concreto premezclado 3000 psi","m³",460000],["Formaleta madera/metálica losa","m²",18000],["Casetones recuperables","und",4500],["Acero refuerzo 60000 psi (proporcional)","kg",4200],["Aire acondicionado split 18000BTU evap+cond","und",3200000],["Tubería cobre aislada A/C","ml",45000],["Bomba condensado","und",185000],["Gas refrigerante R-410A","kg",65000],["Concreto premezclado 3500 psi (MR-45)","m³",520000],["Sub-base granular","m³",65000],["Lámina polietileno","m²",3500],["Malla electrosoldada 6x6-6/6","m²",12500],["Sello elastomérico juntas","ml",15000],["Membrana curado química","kg",22000],["Concreto ciclópeo (60%concreto+40%piedra)","m³",380000],["Acero refuerzo horizontal y vertical","kg",4200],["Geodrén","m²",28000],["Gravilla filtro","m³",65000],["Emulsión asfáltica impermeabilizante","gl",35000],["Lavamanos porcelana manos libres sensor","und",1250000],["Grifería electrónica sensor infrarrojo","und",450000],["Válvula solenoide","und",185000],["Mezclador termostático","und",220000],["Desagüe cromado + sifón botella","jgo",95000],["Cerámica fachada 30x45 Corona Architectural","m²",52000],["Pañete maestreado impermeabilizado","m²",22000],["Adhesivo cementoso exteriores","kg",3200],["Boquilla impermeable color","kg",6500],["Espaciadores","bolsa",3500],["Ácido muriático diluido limpieza","gl",15000],["Planta eléctrica diésel 45KVA trifásica completa","und",65000000],["Tablero transferencia automática","und",8500000],["Concreto 3000 psi base","m³",460000],["Cocina integral modular MDF fórmica","ml",1850000],["Mesón granito natural pulido","ml",450000],["Bisagras hidráulicas","und",18000],["Herrajes cocina calidad","jgo",85000],["Salpicadero cerámico","ml",45000],["Cámara IP exterior 4MP domo vandal proof","und",650000],["NVR grabación (prorrateo)","und",1200000],["Cable UTP Cat6 exterior","ml",5500],["Fuente poder 12V","und",45000],["Tubo galvanizado canalización","ml",18000],["Tanque polietileno 2000L tricapa UV","und",850000],["Estructura metálica soporte ángulo galvanizado","jgo",650000],["Concreto 3000 psi cimentación torre","m³",460000],["Accesorios hidráulicos tanque","jgo",185000],["Tubería alimentación y distribución","jgo",250000],["Portón automático corredizo estructura+lámina","m²",320000],["Motor reductor 1/2 HP","und",1250000],["Cremallera metálica","ml",45000],["Sensores seguridad","jgo",185000],["Control remoto","und",65000],["Concreto 3000 psi rieles","m³",460000],["Concreto pobre 1:3:6","m³",280000],["Polietileno cal.6 mil","m²",3500],["Estuco veneciano tipo Fiorentino (3 manos)","kg",45000],["Imprimante base estuco veneciano","kg",28000],["Cera protectora estuco","lt",65000],["Lija fina","pliego",2500],["Inodoro elevado PMR h=45cm","und",520000],["Barra apoyo abatible inodoro","und",285000],["Lavamanos suspendido grifería monomando","und",450000],["Espejo inclinable PMR","und",185000],["Barras apoyo ducha","jgo",320000],["Señalización accesibilidad","jgo",65000],["Reja seguridad varilla lisa + bastidor ángulo","m²",145000],["Anticorrosivo + esmalte sintético","gl",85000],["Bomba centrífuga 1HP","und",850000],["Tanque hidroneumático 80L","und",650000],["Presostato + manómetro","jgo",125000],["Válvulas corte y accesorios","jgo",185000],["Tablero control hidroneumático","und",350000],["Sensor humo fotoeléctrico convencional","und",125000],["Cable certificado incendios","ml",8500],["Pérgola madera inmunizada (columnas+vigas+correas)","m²",285000],["Stain protector madera","gl",85000],["Tornillería galvanizada pérgola","jgo",45000],["Anclajes químicos pérgola","und",12000],["Ascensor hidráulico 4 paradas 450kg completo","und",185000000],["Porcelanato rectificado 60x60 antideslizante R10","m²",65000],["Mortero autonivelante","kg",4500],["Adhesivo cementoso C2TE S1","kg",3800],["Boquilla epóxica gris","kg",18000],["Espaciadores 2mm","bolsa",3500],["Gabinete contraincendios rojo vidrio completo","und",2850000],["Manguera semi-rígida 30m + pitón","jgo",650000],["Válvula globo 2½\"","und",185000],["Conexión siamesa","und",350000],["Bloque concreto visto 15x20x40 garden wall","und",3200],["Acero amarre Ø8mm c/4 hileras","kg",4200],["Panel ACM aluminio compuesto 4mm Alucobond","m²",185000],["Subestructura aluminio extrusionado","m²",95000],["Aislamiento lana roca 50mm","m²",32000],["Perfil EPDM juntas","ml",12000],["Remaches ciegos","und",450],["Sistema domótica KNX completo","und",25000000],["Piscina estructural concreto armado completa","und",85000000],["Sistema filtración (bomba+filtro+skimmer+boquillas)","und",8500000],["Membrana PVC armada","m²",85000],["Borde piedra coral","ml",125000],["Chimenea gas 12kW cerrada completa","und",8500000],["Ducto salida coaxial Ø80/125mm","ml",65000],["Vidrio templado 10mm transparente","m²",185000],["Herrajes tipo araña inox 316","und",125000],["Silicona Dow Corning 995","cartucho",85000],["Parales y travesaños ocultos","ml",95000],["Anclajes químicos","und",8500],["Tubería Schedule 40 gas natural","ml",35000],["Válvula corte gas por zona","und",45000],["Regulador presión gas","und",185000],["Medidor externo gas","und",250000],["Panel solar 450W monocristalino x12","und",850000],["Inversor híbrido 5kW","und",4500000],["Estructura aluminio inclinada 20°","jgo",1850000],["Cableado solar + tablero protección AC/DC","jgo",1250000],["Sistema monitoreo remoto","und",650000],["Muro verde hidropónico completo","m²",320000],["Piedra natural laja 3-5cm Santafé","m²",65000],["Adhesivo cementoso + anclajes mecánicos","m²",18000],["Mortero pigmentado boquilla","kg",8500],["Sellado hidrófugo","lt",45000],["Sistema aspiración centralizada 1800W completo","und",12000000],["Tubería PVC 50mm aspiración","ml",18000],["Puntos aspiración válvula automática x6","und",185000],["Manguera 9m + accesorios limpieza","jgo",350000],["Sauna seco 4 personas completo","und",15000000],["Piso elevado técnico completo","m²",185000],["Cubierta verde extensiva completa","m²",165000],["Cerradura biométrica + teclado + tarjeta + app","und",1850000],["Pozo séptico anillos concreto 3000L completo","und",3500000],["Caja inspección 60x60 con tapa","und",250000],["Tubería PVC 4\" entrada/salida","ml",22000],["Caldera eléctrica 24kW mural modulante","und",12000000],["Depósito acumulador 200L inox","und",3500000],["Bomba circuladora + vaso expansión","jgo",850000],["Termostatos ambiente x2","jgo",350000],["Jardín vertical artificial premium paneles UV","m²",185000],["Estructura metálica oculta","m²",45000],["Grass block concreto 40x40x10","m²",38000],["Tierra vegetal + semilla césped kikuyo","m²",12000],["Sub-base granular (e=0.10m)","m³",65000],["Sistema riego automático aspersión completo","zona",2850000],["Espejo biselado 6mm + LED + sensor + antiempañante","und",650000],["Gavión caja galvanizada 1x1x2m (prorrateo)","und",350000],["Piedra río 15-25cm seleccionada","m³",85000],["Geotextil separador","m²",5500],["Concreto ciclópeo coronación (proporcional)","m³",380000],["Puerta seccional automática sandwich 40mm completa","und",8500000],["Piso madera ingenierada 15mm roble tráfico alto","m²",145000],["Manta anti-humedad","m²",6500],["Zócalo a juego madera","ml",18000],["Red voz datos Cat6A completo por punto","punto",450000],["Radiador aluminio 6-10 elementos","und",450000],["Tubería multicapa PEX-AL-PEX","ml",18000],["Colector con purgadores","und",285000],["Termostato ambiente","und",185000],["Anticongelante","lt",25000],["Jacuzzi exterior 6 personas completo","und",35000000],["Policarbonato alveolar 16mm bronce","m²",85000],["Estructura aluminio termolacado","m²",65000],["Perfiles H + remates","ml",25000],["Sistema alarma contraincendios direccionable completo","und",25000000],["Piedra coral 30x30cm corte diamante","m²",95000],["Adhesivo cementoso doble encolado","kg",3800],["Mortero pigmentado boquilla 5mm","kg",8500],["Bomba sumergible 2HP 4\" + motor","und",3500000],["Tubería impulsión PEAD 2\"","ml",25000],["Cable sumergible","ml",18000],["Tablero control bomba sumergible","und",650000],["Mármol travertino 40x60 pulido","m²",185000],["Adhesivo blanco C2TES1","kg",5500],["Boquilla epóxica beige","kg",22000],["Sistema videoportero IP color 7\" completo","und",2850000],["Teja arcilla tipo española curva roja","m²",35000],["Estructura madera inmunizada cubierta","m²",65000],["Lámina asfáltica bajo teja","m²",12000],["Puerta vaivén vidrio templado 12mm completa","und",2850000],["Calentador solar 300L 24 tubos heat pipe completo","und",6500000],["Piedra cultural tipo rústica artificial 5-8cm","m²",65000],["Adhesivo cementoso + anclajes c/60cm","m²",18000],["Sellado hidrófugo final","lt",45000]],"l":[["Oficial de construcción",180000,22500],["Ayudante de construcción",120000,15000]],"e":[["Herramienta menor (5% M.O.)","%MO",0.05],["Soplete termofusionado","día",45000],["Vibrador de aguja","día",65000],["Bombeo concreto","m³",45000],["Retroexcavadora CAT 420","hora",180000],["Bomba achique (si necesario)","día",65000],["Nivel láser","día",45000],["Andamio certificado alturas","día",35000],["EPP completo alturas","día",25000],["Taladro percutor","día",35000],["Placa vibratoria compactadora","día",85000],["Cortadora adoquín","día",65000],["Andamio","día",35000],["Equipo medición resistencia tierra","día",120000],["Equipo Fluke tester certificación","día",250000],["Escalera extensible","día",25000],["Equipo soldadura cobre","día",55000],["Vibroplaca / rodillo compactación","día",95000],["Carrotanque humectación","viaje",120000],["Equipo soldadura","día",55000],["Grúa telescópica montaje","hora",250000],["Compresor (si aplica)","día",75000],["Vibrador aguja","día",65000],["Cortadora juntas","día",65000],["Vibroplaca","día",95000],["Formaleta contención","m²",3500],["Cortadora eléctrica enchape","día",45000],["Cortadora disco diamantado","día",65000],["Andamio certificado","día",35000],["Equipo programación","día",120000],["Equipo pruebas hermeticidad","día",120000],["Cortadora eléctrica","día",45000],["Retroexcavadora","hora",180000],["Placa vibratoria","día",85000],["Equipo Fluke DSX-8000 certificación","día",250000],["Grúa telescópica","hora",250000]]}};
+
+// ─── PARSE RAW DATA ───
+function parseData(raw) {
+  const materials = raw.c.m.map((m, i) => ({ id: `mat_${i}`, desc: m[0], unit: m[1], price: m[2] }));
+  const labor = raw.c.l.map((l, i) => ({ id: `lab_${i}`, desc: l[0], jornal: l[1], valHr: l[2] }));
+  const equipment = raw.c.e.map((e, i) => ({ id: `eq_${i}`, desc: e[0], unit: e[1], tarifa: e[2] }));
+
+  const apus = raw.a.map((a) => ({
+    id: a.i,
+    title: a.t,
+    unit: a.u,
+    qty: raw.r.find((r) => r[0] === a.i)?.[3] || 1,
+    materials: a.m.map((m, j) => ({ id: `${a.i}_m_${j}`, desc: m[0], unit: m[1], price: m[2], qty: m[3] })),
+    labor: a.l.map((l, j) => ({ id: `${a.i}_l_${j}`, desc: l[0], jornal: l[1], valHr: l[2], hrs: l[3] })),
+    equipment: a.e.map((e, j) => ({ id: `${a.i}_e_${j}`, desc: e[0], unit: e[1], tarifa: e[2], qty: e[3] })),
+  }));
+
+  return { apus, catalogs: { materials, labor, equipment } };
+}
+
+// ─── UTILITIES ───
+const fmt = (n) => {
+  if (n == null || isNaN(n)) return "$0";
+  return "$" + Math.round(n).toLocaleString("es-CO");
+};
+
+const fmtNum = (n) => {
+  if (n == null || isNaN(n)) return "0";
+  if (Number.isInteger(n)) return n.toLocaleString("es-CO");
+  return n.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+};
+
+const calcApuTotal = (apu) => {
+  const matTotal = apu.materials.reduce((s, m) => s + m.price * m.qty, 0);
+  const labTotal = apu.labor.reduce((s, l) => s + l.valHr * l.hrs, 0);
+  const eqTotal = apu.equipment.reduce((s, e) => {
+    if (e.unit === "%MO") return s + e.tarifa * labTotal * e.qty;
+    return s + e.tarifa * e.qty;
+  }, 0);
+  return { matTotal, labTotal, eqTotal, total: matTotal + labTotal + eqTotal };
+};
+
+// ─── ICONS (inline SVG) ───
+const Icons = {
+  search: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+  plus: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>,
+  back: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>,
+  edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
+  trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+  check: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5"/></svg>,
+  x: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>,
+  list: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>,
+  cube: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>,
+  users: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  wrench: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
+  download: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+};
+
+// ─── EXCEL EXPORT WITH SHEETJS ───
+async function downloadApuExcel(apu) {
+
+  const wb = XLSX.utils.book_new();
+
+  // ─── Build APU sheet data as array of arrays ───
+  const pad = String(apu.id).padStart(2, "0");
+  const today = new Date().toLocaleDateString("es-CO");
+
+  // Calculate totals for formulas reference
+  const matStartRow = 9; // row 9 = first material (0-indexed: 8)
+  const matEndRow = matStartRow + apu.materials.length - 1;
+  const matSubRow = matEndRow + 1; // subtotal row
+
+  const moHeaderRow = matSubRow + 2; // blank + header
+  const moColHeaderRow = moHeaderRow + 1;
+  const moStartRow = moColHeaderRow + 1;
+  const moEndRow = moStartRow + apu.labor.length - 1;
+  const moSubRow = moEndRow + 1;
+
+  const eqHeaderRow = moSubRow + 2;
+  const eqColHeaderRow = eqHeaderRow + 1;
+  const eqStartRow = eqColHeaderRow + 1;
+  const eqEndRow = eqStartRow + apu.equipment.length - 1;
+  const eqSubRow = eqEndRow + 1;
+
+  const totalRow = eqSubRow + 2;
+
+  const data = [];
+
+  // Row 1: Title
+  data.push(["ANÁLISIS DE PRECIOS UNITARIOS (APU)"]);
+  // Row 2: Project
+  data.push(["Proyecto: Vivienda Unifamiliar 2 Niveles - 300 m² - Zona Rural Medellín"]);
+  // Row 3: Item + Unit
+  data.push(["Ítem:", apu.id, "", "Unidad:", apu.unit]);
+  // Row 4: Date
+  data.push(["Fecha:", today]);
+  // Row 5: Description
+  data.push([apu.title]);
+  // Row 6: blank
+  data.push([]);
+  // Row 7: Materials header
+  data.push(["1. MATERIALES"]);
+  // Row 8: Column headers
+  data.push(["Nº", "Descripción", "Unidad", "Precio Unit. (COP)", "Cantidad", "Subtotal (COP)"]);
+
+  // Material rows with formulas
+  apu.materials.forEach((m, i) => {
+    const r = matStartRow + i; // 1-indexed row in sheet
+    data.push([i + 1, m.desc, m.unit, m.price, m.qty, { f: `D${r}*E${r}` }]);
+  });
+
+  // Subtotal materials
+  data.push(["", "", "", "", "SUBTOTAL MATERIALES:", { f: `SUM(F${matStartRow}:F${matEndRow})` }]);
+
+  // Blank
+  data.push([]);
+
+  // MO header
+  data.push(["2. MANO DE OBRA"]);
+  // MO column headers
+  data.push(["Nº", "Descripción", "Jornal/día (COP)", "Valor hora (COP)", "Horas/Und", "Subtotal (COP)"]);
+
+  // Labor rows with formulas
+  apu.labor.forEach((l, i) => {
+    const r = moStartRow + i;
+    data.push([i + 1, l.desc, l.jornal, l.valHr, l.hrs, { f: `D${r}*E${r}` }]);
+  });
+
+  // Subtotal MO
+  data.push(["", "", "", "", "SUBTOTAL MANO DE OBRA:", { f: `SUM(F${moStartRow}:F${moEndRow})` }]);
+
+  // Blank
+  data.push([]);
+
+  // Equipment header
+  data.push(["3. EQUIPOS Y HERRAMIENTA"]);
+  // EQ column headers
+  data.push(["Nº", "Descripción", "Unidad", "Tarifa (COP)", "Cantidad", "Subtotal (COP)"]);
+
+  // Equipment rows with formulas
+  apu.equipment.forEach((e, i) => {
+    const r = eqStartRow + i;
+    if (e.unit === "%MO") {
+      // Herramienta menor = tarifa * subtotal MO * qty
+      data.push([i + 1, e.desc, e.unit, e.tarifa, e.qty, { f: `D${r}*F${moSubRow}*E${r}` }]);
+    } else {
+      data.push([i + 1, e.desc, e.unit, e.tarifa, e.qty, { f: `D${r}*E${r}` }]);
+    }
+  });
+
+  // Subtotal Equipment
+  data.push(["", "", "", "", "SUBTOTAL EQUIPOS:", { f: `SUM(F${eqStartRow}:F${eqEndRow})` }]);
+
+  // Blank
+  data.push([]);
+
+  // TOTAL
+  data.push(["", "", "", "COSTO DIRECTO TOTAL POR " + apu.unit + ":", "", { f: `F${matSubRow}+F${moSubRow}+F${eqSubRow}` }]);
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+
+  // ─── Column widths ───
+  ws["!cols"] = [
+    { wch: 5 },   // A: Nº
+    { wch: 45 },  // B: Descripción
+    { wch: 12 },  // C: Unidad
+    { wch: 18 },  // D: Precio/Jornal/Tarifa
+    { wch: 14 },  // E: Cantidad/Horas
+    { wch: 20 },  // F: Subtotal
+  ];
+
+  // ─── Merge title cells ───
+  ws["!merges"] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }, // Title row
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }, // Project row
+    { s: { r: 4, c: 0 }, e: { r: 4, c: 5 } }, // APU description
+  ];
+
+  // ─── Number formatting for COP columns ───
+  const copFmt = '#,##0';
+  const allRows = data.length;
+  for (let r = 0; r < allRows; r++) {
+    // Format columns D, E, F (indices 3,4,5) as numbers where applicable
+    for (let c = 3; c <= 5; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c });
+      if (ws[cellRef] && (typeof ws[cellRef].v === "number" || ws[cellRef].f)) {
+        if (!ws[cellRef].z) ws[cellRef].z = copFmt;
+      }
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, `APU-${pad}`);
+
+  // ─── Download ───
+  XLSX.writeFile(wb, `APU-${pad}_${apu.title.slice(0, 30).replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, "").trim().replace(/ /g, "_")}.xlsx`);
+}
+
+// ─── MAIN APP ───
+function App() {
+  const initial = useMemo(() => parseData(RAW_DATA), []);
+  const [apus, setApus] = useState(initial.apus);
+  const [catalogs, setCatalogs] = useState(initial.catalogs);
+  const [tab, setTab] = useState("resumen");
+  const [selectedApu, setSelectedApu] = useState(null);
+  const [search, setSearch] = useState("");
+  const [aiu, setAiu] = useState({ admin: 13, imp: 3, util: 3 });
+  const [catalogTab, setCatalogTab] = useState("materials");
+  const [showNewApu, setShowNewApu] = useState(false);
+
+  // Calculate resumen data
+  const resumenData = useMemo(() => {
+    return apus.map((a) => {
+      const t = calcApuTotal(a);
+      return { ...a, valUnit: t.total, valTot: t.total * a.qty };
+    });
+  }, [apus]);
+
+  const filteredResumen = useMemo(() => {
+    if (!search) return resumenData;
+    const s = search.toLowerCase();
+    return resumenData.filter((a) => a.title.toLowerCase().includes(s) || String(a.id).includes(s));
+  }, [resumenData, search]);
+
+  const totals = useMemo(() => {
+    const costoDirec = resumenData.reduce((s, a) => s + a.valTot, 0);
+    const adminVal = costoDirec * (aiu.admin / 100);
+    const impVal = costoDirec * (aiu.imp / 100);
+    const utilVal = costoDirec * (aiu.util / 100);
+    const aiuVal = adminVal + impVal + utilVal;
+    const iva = utilVal * 0.19;
+    return { costoDirec, adminVal, impVal, utilVal, aiuVal, iva, total: costoDirec + aiuVal + iva };
+  }, [resumenData, aiu]);
+
+  const updateApuQty = useCallback((apuId, qty) => {
+    setApus((prev) => prev.map((a) => (a.id === apuId ? { ...a, qty: Math.max(0, qty) } : a)));
+  }, []);
+
+  const openApu = useCallback((apuId) => {
+    setSelectedApu(apuId);
+    setTab("detalle");
+  }, []);
+
+  const updateApuMaterial = useCallback((apuId, matIdx, field, value) => {
+    setApus((prev) =>
+      prev.map((a) => {
+        if (a.id !== apuId) return a;
+        const mats = [...a.materials];
+        mats[matIdx] = { ...mats[matIdx], [field]: value };
+        return { ...a, materials: mats };
+      })
+    );
+  }, []);
+
+  const updateApuLabor = useCallback((apuId, labIdx, field, value) => {
+    setApus((prev) =>
+      prev.map((a) => {
+        if (a.id !== apuId) return a;
+        const labs = [...a.labor];
+        labs[labIdx] = { ...labs[labIdx], [field]: value };
+        return { ...a, labor: labs };
+      })
+    );
+  }, []);
+
+  const updateApuEquip = useCallback((apuId, eqIdx, field, value) => {
+    setApus((prev) =>
+      prev.map((a) => {
+        if (a.id !== apuId) return a;
+        const eqs = [...a.equipment];
+        eqs[eqIdx] = { ...eqs[eqIdx], [field]: value };
+        return { ...a, equipment: eqs };
+      })
+    );
+  }, []);
+
+  const addMaterialToApu = useCallback((apuId, catMat) => {
+    setApus((prev) =>
+      prev.map((a) => {
+        if (a.id !== apuId) return a;
+        return {
+          ...a,
+          materials: [...a.materials, { id: `${a.id}_m_${Date.now()}`, desc: catMat.desc, unit: catMat.unit, price: catMat.price, qty: 1 }],
+        };
+      })
+    );
+  }, []);
+
+  const addLaborToApu = useCallback((apuId, catLab) => {
+    setApus((prev) =>
+      prev.map((a) => {
+        if (a.id !== apuId) return a;
+        return {
+          ...a,
+          labor: [...a.labor, { id: `${a.id}_l_${Date.now()}`, desc: catLab.desc, jornal: catLab.jornal, valHr: catLab.valHr, hrs: 1 }],
+        };
+      })
+    );
+  }, []);
+
+  const addEquipToApu = useCallback((apuId, catEq) => {
+    setApus((prev) =>
+      prev.map((a) => {
+        if (a.id !== apuId) return a;
+        return {
+          ...a,
+          equipment: [...a.equipment, { id: `${a.id}_e_${Date.now()}`, desc: catEq.desc, unit: catEq.unit, tarifa: catEq.tarifa, qty: 1 }],
+        };
+      })
+    );
+  }, []);
+
+  const removeFromApu = useCallback((apuId, section, idx) => {
+    setApus((prev) =>
+      prev.map((a) => {
+        if (a.id !== apuId) return a;
+        const arr = [...a[section]];
+        arr.splice(idx, 1);
+        return { ...a, [section]: arr };
+      })
+    );
+  }, []);
+
+  const addCatalogItem = useCallback((type, item) => {
+    setCatalogs((prev) => ({
+      ...prev,
+      [type]: [...prev[type], { ...item, id: `${type.charAt(0)}_${Date.now()}` }],
+    }));
+  }, []);
+
+  const removeCatalogItem = useCallback((type, idx) => {
+    setCatalogs((prev) => ({
+      ...prev,
+      [type]: prev[type].filter((_, i) => i !== idx),
+    }));
+  }, []);
+
+  const updateCatalogItem = useCallback((type, idx, field, value) => {
+    setCatalogs((prev) => {
+      const items = [...prev[type]];
+      items[idx] = { ...items[idx], [field]: value };
+      return { ...prev, [type]: items };
+    });
+  }, []);
+
+  const createNewApu = useCallback((newApu) => {
+    const maxId = Math.max(...apus.map((a) => a.id), 0);
+    setApus((prev) => [...prev, { ...newApu, id: maxId + 1, qty: 1 }]);
+    setShowNewApu(false);
+  }, [apus]);
+
+  const deleteApu = useCallback((apuId) => {
+    setApus((prev) => prev.filter((a) => a.id !== apuId));
+    if (selectedApu === apuId) {
+      setSelectedApu(null);
+      setTab("resumen");
+    }
+  }, [selectedApu]);
+
+  const currentApu = useMemo(() => apus.find((a) => a.id === selectedApu), [apus, selectedApu]);
+
+  return (
+    <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", background: "#0f1117", color: "#e4e4e7", minHeight: "100vh", fontSize: "13px" }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+      
+      {/* Header */}
+      <div style={{ background: "linear-gradient(135deg, #1a1d27 0%, #0f1117 100%)", borderBottom: "1px solid #2a2d3a", padding: "16px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#f4f4f5", letterSpacing: "-0.02em" }}>
+              <span style={{ color: "#f59e0b" }}>APU</span> Manager
+            </h1>
+            <p style={{ margin: "2px 0 0", fontSize: 11, color: "#71717a" }}>Vivienda Unifamiliar 2 Niveles — Medellín, Antioquia</p>
+          </div>
+          <div style={{ display: "flex", gap: 8, fontSize: 11, color: "#a1a1aa" }}>
+            <span style={{ background: "#1e2030", padding: "4px 10px", borderRadius: 6, border: "1px solid #2a2d3a" }}>{apus.length} APUs</span>
+            <span style={{ background: "#1e2030", padding: "4px 10px", borderRadius: 6, border: "1px solid #2a2d3a" }}>Total: {fmt(totals.total)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 2, padding: "8px 24px 0", borderBottom: "1px solid #2a2d3a", background: "#13151e" }}>
+        {[
+          { key: "resumen", label: "Resumen", icon: Icons.list },
+          { key: "detalle", label: "Detalle APU", icon: Icons.cube },
+          { key: "catalogos", label: "Catálogos", icon: Icons.wrench },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "10px 16px",
+              background: tab === t.key ? "#1a1d27" : "transparent",
+              color: tab === t.key ? "#f59e0b" : "#71717a",
+              border: "none", borderBottom: tab === t.key ? "2px solid #f59e0b" : "2px solid transparent",
+              cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit",
+              transition: "all 0.15s",
+            }}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: "16px 24px 80px" }}>
+        {tab === "resumen" && (
+          <ResumenView
+            data={filteredResumen}
+            totals={totals}
+            aiu={aiu}
+            setAiu={setAiu}
+            search={search}
+            setSearch={setSearch}
+            onOpen={openApu}
+            onQtyChange={updateApuQty}
+            onNew={() => setShowNewApu(true)}
+            onDelete={deleteApu}
+          />
+        )}
+        {tab === "detalle" && (
+          <DetalleView
+            apu={currentApu}
+            apus={apus}
+            catalogs={catalogs}
+            onSelect={setSelectedApu}
+            onUpdateMat={updateApuMaterial}
+            onUpdateLab={updateApuLabor}
+            onUpdateEq={updateApuEquip}
+            onAddMat={addMaterialToApu}
+            onAddLab={addLaborToApu}
+            onAddEq={addEquipToApu}
+            onRemove={removeFromApu}
+            onBack={() => setTab("resumen")}
+          />
+        )}
+        {tab === "catalogos" && (
+          <CatalogosView
+            catalogs={catalogs}
+            catalogTab={catalogTab}
+            setCatalogTab={setCatalogTab}
+            onAdd={addCatalogItem}
+            onRemove={removeCatalogItem}
+            onUpdate={updateCatalogItem}
+          />
+        )}
+      </div>
+
+      {/* New APU Modal */}
+      {showNewApu && (
+        <NewApuModal catalogs={catalogs} onCreate={createNewApu} onClose={() => setShowNewApu(false)} />
+      )}
+    </div>
+  );
+}
+
+// ─── EDITABLE CELL ───
+function EditCell({ value, onChange, type = "number", style = {} }) {
+  const [editing, setEditing] = useState(false);
+  const [tmp, setTmp] = useState(value);
+  const ref = useRef(null);
+
+  useEffect(() => { if (editing && ref.current) ref.current.focus(); }, [editing]);
+
+  if (!editing) {
+    return (
+      <span
+        onClick={() => { setTmp(value); setEditing(true); }}
+        style={{ cursor: "pointer", borderBottom: "1px dashed #3f3f46", padding: "2px 4px", borderRadius: 3, ...style }}
+        title="Clic para editar"
+      >
+        {type === "money" ? fmt(value) : fmtNum(value)}
+      </span>
+    );
+  }
+
+  return (
+    <input
+      ref={ref}
+      type="number"
+      step="any"
+      value={tmp}
+      onChange={(e) => setTmp(e.target.value)}
+      onBlur={() => { onChange(parseFloat(tmp) || 0); setEditing(false); }}
+      onKeyDown={(e) => { if (e.key === "Enter") { onChange(parseFloat(tmp) || 0); setEditing(false); } if (e.key === "Escape") setEditing(false); }}
+      style={{
+        width: 80, padding: "2px 4px", background: "#1e2030", border: "1px solid #f59e0b",
+        borderRadius: 4, color: "#f4f4f5", fontSize: 12, fontFamily: "'JetBrains Mono', monospace", outline: "none",
+      }}
+    />
+  );
+}
+
+// ─── RESUMEN VIEW ───
+function ResumenView({ data, totals, aiu, setAiu, search, setSearch, onOpen, onQtyChange, onNew, onDelete }) {
+  const [page, setPage] = useState(0);
+  const perPage = 20;
+  const totalPages = Math.ceil(data.length / perPage);
+  const pageData = data.slice(page * perPage, (page + 1) * perPage);
+
+  useEffect(() => setPage(0), [search]);
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
+          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#52525b" }}>{Icons.search}</span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar APU por descripción o número..."
+            style={{
+              width: "100%", padding: "8px 12px 8px 32px", background: "#1a1d27", border: "1px solid #2a2d3a",
+              borderRadius: 6, color: "#e4e4e7", fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+            }}
+          />
+        </div>
+        <button onClick={onNew} style={btnStyle("#f59e0b", "#000")}>{Icons.plus} Nuevo APU</button>
+      </div>
+
+      {/* Table */}
+      <div style={{ overflowX: "auto", borderRadius: 8, border: "1px solid #2a2d3a" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: "#1a1d27" }}>
+              {["Nº", "Descripción APU", "Und", "Cantidad", "V. Unitario", "V. Total", ""].map((h, i) => (
+                <th key={i} style={{ padding: "10px 8px", textAlign: i > 2 ? "right" : "left", color: "#a1a1aa", fontWeight: 600, fontSize: 11, borderBottom: "1px solid #2a2d3a", whiteSpace: "nowrap" }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {pageData.map((a) => (
+              <tr key={a.id} style={{ borderBottom: "1px solid #1e2030", transition: "background 0.1s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#1a1d27")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <td style={{ padding: "8px", color: "#f59e0b", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{a.id}</td>
+                <td style={{ padding: "8px", cursor: "pointer", maxWidth: 400 }} onClick={() => onOpen(a.id)}>
+                  <span style={{ color: "#e4e4e7", borderBottom: "1px solid transparent", transition: "border 0.15s" }}
+                    onMouseEnter={(e) => (e.target.style.borderBottom = "1px solid #f59e0b")}
+                    onMouseLeave={(e) => (e.target.style.borderBottom = "1px solid transparent")}
+                  >{a.title}</span>
+                </td>
+                <td style={{ padding: "8px", color: "#a1a1aa" }}>{a.unit}</td>
+                <td style={{ padding: "8px", textAlign: "right" }}>
+                  <EditCell value={a.qty} onChange={(v) => onQtyChange(a.id, v)} />
+                </td>
+                <td style={{ padding: "8px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", color: "#a1a1aa" }}>{fmt(a.valUnit)}</td>
+                <td style={{ padding: "8px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#e4e4e7" }}>{fmt(a.valTot)}</td>
+                <td style={{ padding: "8px", textAlign: "center" }}>
+                  <button onClick={() => onDelete(a.id)} style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", padding: 4 }} title="Eliminar APU">
+                    {Icons.trash}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 12 }}>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button key={i} onClick={() => setPage(i)}
+              style={{
+                padding: "4px 10px", borderRadius: 4, border: "1px solid #2a2d3a", fontSize: 11, cursor: "pointer",
+                fontFamily: "inherit",
+                background: page === i ? "#f59e0b" : "#1a1d27", color: page === i ? "#000" : "#a1a1aa",
+              }}
+            >{i + 1}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Footer AIU */}
+      <div style={{ marginTop: 16, background: "#1a1d27", borderRadius: 8, border: "1px solid #2a2d3a", padding: 16 }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700, color: "#f59e0b" }}>Resumen Financiero</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "6px 24px", fontSize: 12 }}>
+          <span>Costo Directo</span>
+          <span style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{fmt(totals.costoDirec)}</span>
+          
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>Administración (<EditCell value={aiu.admin} onChange={(v) => setAiu((p) => ({ ...p, admin: v }))} />%)</span>
+          <span style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", color: "#a1a1aa" }}>{fmt(totals.adminVal)}</span>
+          
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>Imprevistos (<EditCell value={aiu.imp} onChange={(v) => setAiu((p) => ({ ...p, imp: v }))} />%)</span>
+          <span style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", color: "#a1a1aa" }}>{fmt(totals.impVal)}</span>
+          
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>Utilidad (<EditCell value={aiu.util} onChange={(v) => setAiu((p) => ({ ...p, util: v }))} />%)</span>
+          <span style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", color: "#a1a1aa" }}>{fmt(totals.utilVal)}</span>
+          
+          <span style={{ color: "#a1a1aa" }}>AIU Total</span>
+          <span style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", color: "#a1a1aa" }}>{fmt(totals.aiuVal)}</span>
+          
+          <span style={{ color: "#a1a1aa" }}>IVA (19% s/ Utilidad)</span>
+          <span style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", color: "#a1a1aa" }}>{fmt(totals.iva)}</span>
+          
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b", paddingTop: 8, borderTop: "1px solid #2a2d3a" }}>VALOR TOTAL</span>
+          <span style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 700, color: "#f59e0b", paddingTop: 8, borderTop: "1px solid #2a2d3a" }}>{fmt(totals.total)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── DETALLE APU VIEW ───
+function DetalleView({ apu, apus, catalogs, onSelect, onUpdateMat, onUpdateLab, onUpdateEq, onAddMat, onAddLab, onAddEq, onRemove, onBack }) {
+  const [addType, setAddType] = useState(null); // 'materials' | 'labor' | 'equipment'
+  const [catSearch, setCatSearch] = useState("");
+
+  if (!apu) {
+    return (
+      <div>
+        <p style={{ color: "#71717a", marginBottom: 12 }}>Selecciona un APU del resumen o elige uno aquí:</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {apus.map((a) => {
+            const t = calcApuTotal(a);
+            return (
+              <button key={a.id} onClick={() => onSelect(a.id)}
+                style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "#1a1d27", border: "1px solid #2a2d3a", borderRadius: 6, color: "#e4e4e7", cursor: "pointer", fontSize: 12, fontFamily: "inherit", textAlign: "left" }}
+              >
+                <span><span style={{ color: "#f59e0b", fontWeight: 600 }}>APU-{String(a.id).padStart(2, "0")}</span> {a.title}</span>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#a1a1aa" }}>{fmt(t.total)}/{a.unit}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  const t = calcApuTotal(apu);
+
+  const renderCatalogPicker = (type) => {
+    const items = type === "materials" ? catalogs.materials : type === "labor" ? catalogs.labor : catalogs.equipment;
+    const filtered = catSearch ? items.filter((i) => i.desc.toLowerCase().includes(catSearch.toLowerCase())) : items;
+    return (
+      <div style={{ background: "#13151e", border: "1px solid #f59e0b", borderRadius: 8, padding: 12, marginTop: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#f59e0b" }}>Seleccionar del catálogo</span>
+          <button onClick={() => { setAddType(null); setCatSearch(""); }} style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer" }}>{Icons.x}</button>
+        </div>
+        <input
+          value={catSearch} onChange={(e) => setCatSearch(e.target.value)} placeholder="Buscar..."
+          style={{ width: "100%", padding: "6px 8px", background: "#1a1d27", border: "1px solid #2a2d3a", borderRadius: 4, color: "#e4e4e7", fontSize: 11, fontFamily: "inherit", marginBottom: 6, boxSizing: "border-box", outline: "none" }}
+        />
+        <div style={{ maxHeight: 150, overflowY: "auto" }}>
+          {filtered.slice(0, 20).map((item, i) => (
+            <button key={i}
+              onClick={() => {
+                if (type === "materials") onAddMat(apu.id, item);
+                else if (type === "labor") onAddLab(apu.id, item);
+                else onAddEq(apu.id, item);
+                setAddType(null); setCatSearch("");
+              }}
+              style={{ display: "block", width: "100%", padding: "6px 8px", background: "transparent", border: "none", borderBottom: "1px solid #1e2030", color: "#e4e4e7", cursor: "pointer", fontSize: 11, fontFamily: "inherit", textAlign: "left" }}
+            >
+              {item.desc} <span style={{ color: "#71717a" }}>— {type === "labor" ? fmt(item.jornal) + "/día" : type === "materials" ? fmt(item.price) + "/" + item.unit : fmt(item.tarifa) + "/" + item.unit}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      {/* Nav */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        <button onClick={onBack} style={btnStyle("#2a2d3a", "#e4e4e7")}>{Icons.back} Resumen</button>
+        <select value={apu.id} onChange={(e) => onSelect(Number(e.target.value))}
+          style={{ padding: "6px 10px", background: "#1a1d27", border: "1px solid #2a2d3a", borderRadius: 6, color: "#e4e4e7", fontSize: 12, fontFamily: "inherit", outline: "none" }}
+        >
+          {apus.map((a) => <option key={a.id} value={a.id}>APU-{String(a.id).padStart(2, "0")}: {a.title.slice(0, 50)}</option>)}
+        </select>
+      </div>
+
+      {/* Header */}
+      <div style={{ background: "#1a1d27", borderRadius: 8, border: "1px solid #2a2d3a", padding: 16, marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 600 }}>APU-{String(apu.id).padStart(2, "0")}</span>
+            <h2 style={{ margin: "4px 0 0", fontSize: 15, fontWeight: 700, color: "#f4f4f5" }}>{apu.title}</h2>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <span style={{ fontSize: 11, color: "#71717a" }}>Unidad: <b style={{ color: "#e4e4e7" }}>{apu.unit}</b></span>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono', monospace" }}>{fmt(t.total)}</div>
+          </div>
+        </div>
+        <div style={{ marginTop: 12, borderTop: "1px solid #2a2d3a", paddingTop: 12 }}>
+          <button onClick={() => downloadApuExcel(apu)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "linear-gradient(135deg, #16a34a, #15803d)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px #16a34a44", transition: "transform 0.1s, box-shadow 0.1s" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px #16a34a66"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 8px #16a34a44"; }}>
+            {Icons.download} Descargar APU en Excel (formulado)
+          </button>
+          <span style={{ marginLeft: 10, fontSize: 10, color: "#52525b" }}>Archivo .xlsx con fórmulas automáticas</span>
+        </div>
+      </div>
+
+      {/* Materials */}
+      <SectionCard title="1. MATERIALES" color="#3b82f6" total={t.matTotal}>
+        <table style={tblStyle}>
+          <thead>
+            <tr>
+              {["Descripción", "Und", "Precio Unit.", "Cantidad", "Subtotal", ""].map((h, i) => (
+                <th key={i} style={thStyle(i > 1)}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {apu.materials.map((m, i) => (
+              <tr key={m.id} style={trStyle}>
+                <td style={tdStyle()}>{m.desc}</td>
+                <td style={tdStyle()}>{m.unit}</td>
+                <td style={tdStyle(true)}><EditCell value={m.price} onChange={(v) => onUpdateMat(apu.id, i, "price", v)} type="money" /></td>
+                <td style={tdStyle(true)}><EditCell value={m.qty} onChange={(v) => onUpdateMat(apu.id, i, "qty", v)} /></td>
+                <td style={{ ...tdStyle(true), fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{fmt(m.price * m.qty)}</td>
+                <td style={tdStyle(true)}>
+                  <button onClick={() => onRemove(apu.id, "materials", i)} style={delBtnStyle}>{Icons.trash}</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <button onClick={() => setAddType(addType === "materials" ? null : "materials")} style={btnStyle("#3b82f6", "#fff", true)}>{Icons.plus} Agregar material</button>
+        {addType === "materials" && renderCatalogPicker("materials")}
+      </SectionCard>
+
+      {/* Labor */}
+      <SectionCard title="2. MANO DE OBRA" color="#10b981" total={t.labTotal}>
+        <table style={tblStyle}>
+          <thead>
+            <tr>
+              {["Descripción", "Jornal/día", "Valor Hora", "Horas/Und", "Subtotal", ""].map((h, i) => (
+                <th key={i} style={thStyle(i > 0)}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {apu.labor.map((l, i) => (
+              <tr key={l.id} style={trStyle}>
+                <td style={tdStyle()}>{l.desc}</td>
+                <td style={tdStyle(true)}><EditCell value={l.jornal} onChange={(v) => onUpdateLab(apu.id, i, "jornal", v)} type="money" /></td>
+                <td style={tdStyle(true)}><EditCell value={l.valHr} onChange={(v) => onUpdateLab(apu.id, i, "valHr", v)} type="money" /></td>
+                <td style={tdStyle(true)}><EditCell value={l.hrs} onChange={(v) => onUpdateLab(apu.id, i, "hrs", v)} /></td>
+                <td style={{ ...tdStyle(true), fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{fmt(l.valHr * l.hrs)}</td>
+                <td style={tdStyle(true)}>
+                  <button onClick={() => onRemove(apu.id, "labor", i)} style={delBtnStyle}>{Icons.trash}</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <button onClick={() => setAddType(addType === "labor" ? null : "labor")} style={btnStyle("#10b981", "#fff", true)}>{Icons.plus} Agregar M.O.</button>
+        {addType === "labor" && renderCatalogPicker("labor")}
+      </SectionCard>
+
+      {/* Equipment */}
+      <SectionCard title="3. EQUIPOS Y HERRAMIENTA" color="#8b5cf6" total={t.eqTotal}>
+        <table style={tblStyle}>
+          <thead>
+            <tr>
+              {["Descripción", "Und", "Tarifa", "Cantidad", "Subtotal", ""].map((h, i) => (
+                <th key={i} style={thStyle(i > 1)}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {apu.equipment.map((e, i) => (
+              <tr key={e.id} style={trStyle}>
+                <td style={tdStyle()}>{e.desc}</td>
+                <td style={tdStyle()}>{e.unit}</td>
+                <td style={tdStyle(true)}><EditCell value={e.tarifa} onChange={(v) => onUpdateEq(apu.id, i, "tarifa", v)} type={e.unit === "%MO" ? "number" : "money"} /></td>
+                <td style={tdStyle(true)}><EditCell value={e.qty} onChange={(v) => onUpdateEq(apu.id, i, "qty", v)} /></td>
+                <td style={{ ...tdStyle(true), fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
+                  {fmt(e.unit === "%MO" ? e.tarifa * t.labTotal * e.qty : e.tarifa * e.qty)}
+                </td>
+                <td style={tdStyle(true)}>
+                  <button onClick={() => onRemove(apu.id, "equipment", i)} style={delBtnStyle}>{Icons.trash}</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <button onClick={() => setAddType(addType === "equipment" ? null : "equipment")} style={btnStyle("#8b5cf6", "#fff", true)}>{Icons.plus} Agregar equipo</button>
+        {addType === "equipment" && renderCatalogPicker("equipment")}
+      </SectionCard>
+
+      {/* Total bar */}
+      <div style={{ background: "linear-gradient(135deg, #f59e0b22, #f59e0b11)", border: "1px solid #f59e0b44", borderRadius: 8, padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+        <span style={{ fontWeight: 700, fontSize: 14 }}>COSTO DIRECTO TOTAL POR {apu.unit}</span>
+        <span style={{ fontSize: 20, fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono', monospace" }}>{fmt(t.total)}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── SECTION CARD ───
+function SectionCard({ title, color, total, children }) {
+  return (
+    <div style={{ background: "#13151e", borderRadius: 8, border: `1px solid ${color}33`, marginBottom: 12, overflow: "hidden" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: `${color}11`, borderBottom: `1px solid ${color}33` }}>
+        <span style={{ fontWeight: 700, fontSize: 12, color }}>{title}</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, fontSize: 13, color }}>{fmt(total)}</span>
+      </div>
+      <div style={{ padding: 12 }}>{children}</div>
+    </div>
+  );
+}
+
+// ─── CATALOGOS VIEW ───
+function CatalogosView({ catalogs, catalogTab, setCatalogTab, onAdd, onRemove, onUpdate }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [newItem, setNewItem] = useState({});
+  const [search, setSearch] = useState("");
+
+  const tabs = [
+    { key: "materials", label: "Materiales", icon: Icons.cube, count: catalogs.materials.length, color: "#3b82f6" },
+    { key: "labor", label: "Mano de Obra", icon: Icons.users, count: catalogs.labor.length, color: "#10b981" },
+    { key: "equipment", label: "Equipos", icon: Icons.wrench, count: catalogs.equipment.length, color: "#8b5cf6" },
+  ];
+
+  const currentItems = catalogs[catalogTab] || [];
+  const filtered = search ? currentItems.filter((i) => i.desc.toLowerCase().includes(search.toLowerCase())) : currentItems;
+
+  const handleAdd = () => {
+    if (!newItem.desc) return;
+    if (catalogTab === "materials") {
+      onAdd("materials", { desc: newItem.desc, unit: newItem.unit || "und", price: parseFloat(newItem.price) || 0 });
+    } else if (catalogTab === "labor") {
+      const jornal = parseFloat(newItem.jornal) || 0;
+      onAdd("labor", { desc: newItem.desc, jornal, valHr: jornal / 8 });
+    } else {
+      onAdd("equipment", { desc: newItem.desc, unit: newItem.unit || "día", tarifa: parseFloat(newItem.tarifa) || 0 });
+    }
+    setNewItem({});
+    setShowAdd(false);
+  };
+
+  return (
+    <div>
+      {/* Catalog tabs */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+        {tabs.map((t) => (
+          <button key={t.key} onClick={() => { setCatalogTab(t.key); setSearch(""); setShowAdd(false); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
+              background: catalogTab === t.key ? `${t.color}22` : "#1a1d27",
+              border: `1px solid ${catalogTab === t.key ? t.color : "#2a2d3a"}`,
+              borderRadius: 6, color: catalogTab === t.key ? t.color : "#71717a",
+              cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit",
+            }}
+          >
+            {t.icon} {t.label} <span style={{ background: `${t.color}33`, padding: "1px 6px", borderRadius: 10, fontSize: 10 }}>{t.count}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
+          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#52525b" }}>{Icons.search}</span>
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar en catálogo..."
+            style={{ width: "100%", padding: "8px 12px 8px 32px", background: "#1a1d27", border: "1px solid #2a2d3a", borderRadius: 6, color: "#e4e4e7", fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+        <button onClick={() => setShowAdd(!showAdd)} style={btnStyle("#f59e0b", "#000")}>{Icons.plus} Nuevo</button>
+      </div>
+
+      {/* Add form */}
+      {showAdd && (
+        <div style={{ background: "#1a1d27", border: "1px solid #f59e0b", borderRadius: 8, padding: 14, marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div style={{ flex: 2, minWidth: 150 }}>
+            <label style={labelStyle}>Descripción</label>
+            <input value={newItem.desc || ""} onChange={(e) => setNewItem((p) => ({ ...p, desc: e.target.value }))} style={inputStyle} />
+          </div>
+          {catalogTab === "materials" && (
+            <>
+              <div style={{ flex: 1, minWidth: 80 }}>
+                <label style={labelStyle}>Unidad</label>
+                <input value={newItem.unit || ""} onChange={(e) => setNewItem((p) => ({ ...p, unit: e.target.value }))} style={inputStyle} />
+              </div>
+              <div style={{ flex: 1, minWidth: 100 }}>
+                <label style={labelStyle}>Precio Unit.</label>
+                <input type="number" value={newItem.price || ""} onChange={(e) => setNewItem((p) => ({ ...p, price: e.target.value }))} style={inputStyle} />
+              </div>
+            </>
+          )}
+          {catalogTab === "labor" && (
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <label style={labelStyle}>Jornal/día (COP)</label>
+              <input type="number" value={newItem.jornal || ""} onChange={(e) => setNewItem((p) => ({ ...p, jornal: e.target.value }))} style={inputStyle} />
+            </div>
+          )}
+          {catalogTab === "equipment" && (
+            <>
+              <div style={{ flex: 1, minWidth: 80 }}>
+                <label style={labelStyle}>Unidad</label>
+                <input value={newItem.unit || ""} onChange={(e) => setNewItem((p) => ({ ...p, unit: e.target.value }))} style={inputStyle} />
+              </div>
+              <div style={{ flex: 1, minWidth: 100 }}>
+                <label style={labelStyle}>Tarifa</label>
+                <input type="number" value={newItem.tarifa || ""} onChange={(e) => setNewItem((p) => ({ ...p, tarifa: e.target.value }))} style={inputStyle} />
+              </div>
+            </>
+          )}
+          <button onClick={handleAdd} style={btnStyle("#f59e0b", "#000")}>{Icons.check} Guardar</button>
+          <button onClick={() => { setShowAdd(false); setNewItem({}); }} style={btnStyle("#2a2d3a", "#a1a1aa")}>{Icons.x} Cancelar</button>
+        </div>
+      )}
+
+      {/* Catalog table */}
+      <div style={{ overflowX: "auto", borderRadius: 8, border: "1px solid #2a2d3a" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: "#1a1d27" }}>
+              <th style={thStyle(false)}>Nº</th>
+              <th style={thStyle(false)}>Descripción</th>
+              {catalogTab === "materials" && <><th style={thStyle(false)}>Unidad</th><th style={thStyle(true)}>Precio Unit.</th></>}
+              {catalogTab === "labor" && <><th style={thStyle(true)}>Jornal/día</th><th style={thStyle(true)}>Valor Hora</th></>}
+              {catalogTab === "equipment" && <><th style={thStyle(false)}>Unidad</th><th style={thStyle(true)}>Tarifa</th></>}
+              <th style={thStyle(true)}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((item, i) => {
+              const realIdx = currentItems.indexOf(item);
+              return (
+                <tr key={i} style={trStyle}>
+                  <td style={{ ...tdStyle(), color: "#52525b", fontFamily: "'JetBrains Mono', monospace" }}>{realIdx + 1}</td>
+                  <td style={tdStyle()}>{item.desc}</td>
+                  {catalogTab === "materials" && (
+                    <>
+                      <td style={tdStyle()}>{item.unit}</td>
+                      <td style={tdStyle(true)}>
+                        <EditCell value={item.price} onChange={(v) => onUpdate("materials", realIdx, "price", v)} type="money" />
+                      </td>
+                    </>
+                  )}
+                  {catalogTab === "labor" && (
+                    <>
+                      <td style={tdStyle(true)}>
+                        <EditCell value={item.jornal} onChange={(v) => { onUpdate("labor", realIdx, "jornal", v); onUpdate("labor", realIdx, "valHr", v / 8); }} type="money" />
+                      </td>
+                      <td style={{ ...tdStyle(true), fontFamily: "'JetBrains Mono', monospace", color: "#a1a1aa" }}>{fmt(item.valHr)}</td>
+                    </>
+                  )}
+                  {catalogTab === "equipment" && (
+                    <>
+                      <td style={tdStyle()}>{item.unit}</td>
+                      <td style={tdStyle(true)}>
+                        <EditCell value={item.tarifa} onChange={(v) => onUpdate("equipment", realIdx, "tarifa", v)} type={item.unit === "%MO" ? "number" : "money"} />
+                      </td>
+                    </>
+                  )}
+                  <td style={tdStyle(true)}>
+                    <button onClick={() => onRemove(catalogTab, realIdx)} style={delBtnStyle}>{Icons.trash}</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── NEW APU MODAL ───
+function NewApuModal({ catalogs, onCreate, onClose }) {
+  const [title, setTitle] = useState("");
+  const [unit, setUnit] = useState("m²");
+  const [materials, setMaterials] = useState([]);
+  const [labor, setLabor] = useState([]);
+  const [equipment, setEquipment] = useState([]);
+  const [addSection, setAddSection] = useState(null);
+  const [catSearch, setCatSearch] = useState("");
+
+  const handleSubmit = () => {
+    if (!title.trim()) return;
+    onCreate({ title: title.trim(), unit, materials, labor, equipment });
+  };
+
+  const addFromCatalog = (section, item) => {
+    if (section === "materials") {
+      setMaterials((p) => [...p, { id: `new_m_${Date.now()}`, desc: item.desc, unit: item.unit, price: item.price, qty: 1 }]);
+    } else if (section === "labor") {
+      setLabor((p) => [...p, { id: `new_l_${Date.now()}`, desc: item.desc, jornal: item.jornal, valHr: item.valHr, hrs: 1 }]);
+    } else {
+      setEquipment((p) => [...p, { id: `new_e_${Date.now()}`, desc: item.desc, unit: item.unit, tarifa: item.tarifa, qty: 1 }]);
+    }
+    setAddSection(null);
+    setCatSearch("");
+  };
+
+  const matTotal = materials.reduce((s, m) => s + m.price * m.qty, 0);
+  const labTotal = labor.reduce((s, l) => s + l.valHr * l.hrs, 0);
+  const eqTotal = equipment.reduce((s, e) => s + (e.unit === "%MO" ? e.tarifa * labTotal * e.qty : e.tarifa * e.qty), 0);
+
+  const renderPicker = (section) => {
+    const items = section === "materials" ? catalogs.materials : section === "labor" ? catalogs.labor : catalogs.equipment;
+    const filtered = catSearch ? items.filter((i) => i.desc.toLowerCase().includes(catSearch.toLowerCase())) : items;
+    return (
+      <div style={{ background: "#0f1117", border: "1px solid #f59e0b", borderRadius: 6, padding: 10, marginTop: 6 }}>
+        <input value={catSearch} onChange={(e) => setCatSearch(e.target.value)} placeholder="Buscar..." style={{ ...inputStyle, marginBottom: 6 }} />
+        <div style={{ maxHeight: 120, overflowY: "auto" }}>
+          {filtered.slice(0, 15).map((item, i) => (
+            <button key={i} onClick={() => addFromCatalog(section, item)}
+              style={{ display: "block", width: "100%", padding: "5px 6px", background: "transparent", border: "none", borderBottom: "1px solid #1e2030", color: "#e4e4e7", cursor: "pointer", fontSize: 11, fontFamily: "inherit", textAlign: "left" }}
+            >{item.desc}</button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000c", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
+      <div style={{ background: "#13151e", border: "1px solid #2a2d3a", borderRadius: 12, padding: 20, width: "100%", maxWidth: 600, maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#f59e0b" }}>Crear Nuevo APU</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer" }}>{Icons.x}</button>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <div style={{ flex: 3 }}>
+            <label style={labelStyle}>Descripción del APU</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: CONCRETO ESTRUCTURAL 3000 psi COLUMNAS" style={inputStyle} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Unidad</label>
+            <input value={unit} onChange={(e) => setUnit(e.target.value)} style={inputStyle} />
+          </div>
+        </div>
+
+        {/* Materials */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6" }}>Materiales ({materials.length})</span>
+            <button onClick={() => setAddSection(addSection === "materials" ? null : "materials")} style={btnStyle("#3b82f6", "#fff", true)}>{Icons.plus}</button>
+          </div>
+          {materials.map((m, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 11, borderBottom: "1px solid #1e2030" }}>
+              <span>{m.desc}</span>
+              <span style={{ color: "#a1a1aa" }}>{fmt(m.price * m.qty)}</span>
+            </div>
+          ))}
+          {addSection === "materials" && renderPicker("materials")}
+        </div>
+
+        {/* Labor */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#10b981" }}>Mano de Obra ({labor.length})</span>
+            <button onClick={() => setAddSection(addSection === "labor" ? null : "labor")} style={btnStyle("#10b981", "#fff", true)}>{Icons.plus}</button>
+          </div>
+          {labor.map((l, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 11, borderBottom: "1px solid #1e2030" }}>
+              <span>{l.desc}</span>
+              <span style={{ color: "#a1a1aa" }}>{fmt(l.valHr * l.hrs)}</span>
+            </div>
+          ))}
+          {addSection === "labor" && renderPicker("labor")}
+        </div>
+
+        {/* Equipment */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#8b5cf6" }}>Equipos ({equipment.length})</span>
+            <button onClick={() => setAddSection(addSection === "equipment" ? null : "equipment")} style={btnStyle("#8b5cf6", "#fff", true)}>{Icons.plus}</button>
+          </div>
+          {equipment.map((e, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 11, borderBottom: "1px solid #1e2030" }}>
+              <span>{e.desc}</span>
+              <span style={{ color: "#a1a1aa" }}>{fmt(e.unit === "%MO" ? e.tarifa * labTotal * e.qty : e.tarifa * e.qty)}</span>
+            </div>
+          ))}
+          {addSection === "equipment" && renderPicker("equipment")}
+        </div>
+
+        {/* Total */}
+        <div style={{ background: "#1a1d27", borderRadius: 6, padding: 12, marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontWeight: 600 }}>Costo Directo</span>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#f59e0b" }}>{fmt(matTotal + labTotal + eqTotal)}</span>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={btnStyle("#2a2d3a", "#a1a1aa")}>Cancelar</button>
+          <button onClick={handleSubmit} style={btnStyle("#f59e0b", "#000")}>Crear APU</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SHARED STYLES ───
+const btnStyle = (bg, color, small = false) => ({
+  display: "inline-flex", alignItems: "center", gap: 4,
+  padding: small ? "4px 10px" : "7px 14px",
+  background: bg, color, border: "none", borderRadius: 6,
+  fontSize: small ? 11 : 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+  whiteSpace: "nowrap",
+});
+
+const tblStyle = { width: "100%", borderCollapse: "collapse", fontSize: 11 };
+const thStyle = (right) => ({ padding: "6px 8px", textAlign: right ? "right" : "left", color: "#71717a", fontWeight: 600, fontSize: 10, borderBottom: "1px solid #2a2d3a", whiteSpace: "nowrap" });
+const tdStyle = (right) => ({ padding: "6px 8px", textAlign: right ? "right" : "left", borderBottom: "1px solid #1e2030" });
+const trStyle = { transition: "background 0.1s" };
+const delBtnStyle = { background: "none", border: "none", color: "#52525b", cursor: "pointer", padding: 2 };
+const labelStyle = { display: "block", fontSize: 10, color: "#71717a", fontWeight: 600, marginBottom: 3 };
+const inputStyle = { width: "100%", padding: "6px 8px", background: "#1a1d27", border: "1px solid #2a2d3a", borderRadius: 4, color: "#e4e4e7", fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box" };
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
